@@ -1,0 +1,3 @@
+# Claude Code Instructions
+
+Please read and follow the repository instructions in `AGENTS.md`.
