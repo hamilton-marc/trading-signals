@@ -115,7 +115,9 @@ Print a short summary, e.g.:
 - Iteration 002: Load `data/{SYMBOL}.csv` and populate `close` (latest close)
 - Iteration 003: Compute `trend_dir_daily` from daily bars (rule TBD)
 - Iteration 004: Resample daily bars into monthly bars; compute `trend_dir_monthly`
-- Iteration 005: Compute a momentum indicator and detect “go long” signals
+- Iteration 005: Compute a momentum indicator and detect directional signals:
+    - `momentum_signal` in {up, down, none}
+    - Treat `up`/`down` as candidates for entries and/or exits (rules TBD)
 - Iteration 006: Notifications (email/push/etc.)
 - Add unit tests (watchlist parsing + CSV schema “golden” check)
 
