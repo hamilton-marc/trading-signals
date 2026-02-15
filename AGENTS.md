@@ -1,80 +1,115 @@
-# AGENTS.md — Instructions for Coding Agents (Codex)
+# AGENTS.md — Trading Signals (Flexible Mode)
 
-This repo is an end-of-day (EOD) stock scanner. The goal is to iterate in small, verifiable steps.
+This repository is a personal learning project focused on building an end-of-day (EOD) trading signal tool.
 
-## Operating Mode
-- Prefer **micro-iterations** with small diffs.
-- Implement **only what the current story/spec asks for**. Do not add “nice to have” features.
-- If something is ambiguous, make a reasonable assumption and document it in the relevant story/spec. Do not block on questions.
+The goal is steady progress, clarity, and skill development — not rigid process compliance.
 
-## Scope Discipline (Anti-Drift)
-- Do **not** redesign the architecture or refactor code that already works unless explicitly requested.
-- Prefer **additive changes** over refactors.
-- Do not rename files, modules, or CLI commands once introduced unless required for correctness.
-- Do not introduce new configuration systems (YAML/TOML/env frameworks) unless explicitly requested.
+---
 
-## Project Goals (High Level)
-- Run after US market close using **daily EOD data** (no real-time requirement).
-- Scan symbols from `watchlist.txt`.
-- Output a **CSV** artifact in `out/` that is easy to review.
-- Later iterations will add momentum signals and notifications.
+## Operating Philosophy
 
-## Current MVP Philosophy
-- Start with scaffolding and contracts first.
-- Add one capability at a time:
-    1) read watchlist
-    2) fetch EOD data
-    3) compute indicator
-    4) detect signal
-    5) notify (email/push) — last
+- Build in **small, runnable steps**.
+- Keep the system working at all times.
+- Prefer **simple over clever**.
+- Refactor when it improves clarity.
+- Avoid premature architecture decisions.
 
-## Tech Choices
-- Language: **Python 3.x** (works in a venv).
-- Dependencies: keep minimal.
-    - Standard library preferred for early iterations.
-    - Add third-party packages only when clearly justified (and keep the list short).
-- Data source: must support EOD daily bars; prefer free/cheap and simple. Do not require API keys for the very first iterations unless the story explicitly says so.
+This project is allowed to evolve.
 
-## Code Style Preferences (Python)
-- Prefer an **object-oriented** design where it improves clarity (small classes with clear responsibilities).
-- Use **type hints** throughout (function signatures + class attributes where practical).
-- Prefer `dataclasses` for simple data containers.
-- Keep modules cohesive (avoid “god files” and overly large classes).
-- When introducing interfaces/abstractions, keep them lightweight and aligned to the current story.
+---
 
-## Validation / Config
-- Prefer **Pydantic** models for configuration and validating external inputs.
-- Prefer `dataclasses` for internal immutable data records.
+## Current Direction (High Level)
 
-## Output Contracts (Stability Anchor)
-- Output folder: `out/` (create if missing).
-- CSV filenames should include the date (YYYY-MM-DD) as specified by the current story/spec.
-- Preserve CSV column names once introduced; only add new columns (don’t rename) unless requested.
+- Read symbols from `watchlist.txt`
+- Fetch end-of-day price data
+- Generate a daily CSV shortlist
+- Gradually add trend / momentum logic
+
+Details may change as we learn.
+
+---
+
+## Scope Guidelines (Lightweight)
+
+- Do not add features unrelated to the current task.
+- Refactoring is allowed if it simplifies or clarifies the design.
+- Architecture can evolve — do not freeze contracts too early.
+- Avoid introducing heavy frameworks unless clearly justified.
+
+---
+
+## Technology Preferences
+
+- Python 3.10+
+- Keep dependencies minimal (but don’t be dogmatic).
+- Prefer:
+  - Type hints
+  - Small cohesive modules
+  - `dataclasses` for simple data structures
+- Use third-party libraries only when they meaningfully reduce complexity.
+
+---
+
+## Data Philosophy
+
+- Data provider may change.
+- JSON or CSV storage is acceptable.
+- Weekly/monthly data may be derived from daily.
+- Caching locally is preferred over repeated API calls.
+
+Do not hard-wire assumptions that make provider changes difficult.
+
+---
+
+## Output Conventions
+
+- Write artifacts to `out/`
+- CSV is preferred for human review.
+- Early schema changes are acceptable.
+- Once the project stabilizes, contracts can harden.
+
+---
 
 ## Error Handling
-- Do not crash the whole run because one symbol fails.
-- Record per-symbol failures in output (e.g., an `error` column) and continue.
 
-## Testing / Verification
-- Every iteration must include a simple way to verify behavior:
-    - Either a small unit test, or
-    - A deterministic “golden” output/schema check, or
-    - A CLI `--help` + example run documented in the story/spec.
-- When you add code, ensure `python -m compileall .` succeeds.
+- One symbol failing should not crash the entire run.
+- Log or record per-symbol failures.
+- Prefer resilience over strict failure.
 
-## Unit Testing
-- Use **pytest** for all new tests.
-- Place tests under `tests/` and name files `test_*.py`.
-- Prefer small, focused tests and “golden” checks (e.g., CSV schema/columns, watchlist parsing).
-- Do not add additional test frameworks unless explicitly requested.
+---
 
-## Suggested Repo Layout (Keep Simple)
-- Do not introduce a complex layout until the spec requires it.
+## Testing & Verification
 
-## Communication Style (in code + PR notes)
-- Leave brief comments explaining assumptions.
-- Keep functions small and readable.
-- When making changes, summarize:
-    - what you changed
-    - how to run/verify it
-    - what you intentionally did NOT do yet
+Each iteration should have a simple verification path:
+- A CLI run example
+- A small unit test
+- Or a clear printed summary
+
+Keep tests focused and lightweight.
+
+---
+
+## Learning Mode Enabled
+
+This is a growth project.
+
+It is acceptable to:
+- Ask why a command works
+- Replace Bash with Python (or vice versa)
+- Refactor for understanding
+- Try different data providers
+- Simplify earlier decisions
+
+The objective is mastery and clarity — not process perfection.
+
+---
+
+## Communication Style (for coding agents)
+
+When making changes:
+- Summarize what changed
+- Explain how to run/verify it
+- Call out any assumptions
+- Note what was intentionally not implemented yet
+
+Keep diffs small. Keep explanations clear.
