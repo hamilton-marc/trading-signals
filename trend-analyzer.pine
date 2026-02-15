@@ -1,0 +1,20 @@
+indicator("Trend Analyzer - Daily", overlay=true)
+
+// Moving averages
+ma50 = ta.sma(close, 50)
+ma200 = ta.sma(close, 200)
+
+// Trend logic
+isUptrend = close > ma50 and ma50 > ma200
+isDowntrend = close < ma50 and ma50 < ma200
+trendLabel = isUptrend ? "UPTREND" : isDowntrend ? "DOWNTREND" : "NEUTRAL"
+trendColor = isUptrend ? color.green : isDowntrend ? color.red : color.orange
+
+// Single persistent label
+var label trendDisplay = label.new(x=bar_index, y=na, text=trendLabel, style=label.style_label_left, color=trendColor, textcolor=color.white, size=size.large)
+
+label.set_xy(trendDisplay, bar_index, high)
+label.set_text(trendDisplay, trendLabel)
+label.set_color(trendDisplay, trendColor)
+
+plot(close)

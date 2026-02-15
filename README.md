@@ -47,3 +47,112 @@ Default behavior:
 - Reads input files from `out/daily/<SYMBOL>.csv`
 - Writes indicator files to `out/indicators/<SYMBOL>.csv`
 - Adds EMA columns like `EMA_50`, `EMA_200` (blank until enough rows exist)
+
+## Analyze Trend
+Translate the TradingView trend logic using EMA (default: EMA-50 and EMA-200):
+
+```bash
+python3 trend_analyzer.py
+```
+
+Reduce sideways-market noise with buffer + confirmation:
+
+```bash
+python3 trend_analyzer.py --buffer-pct 0.5 --confirm-bars 3
+```
+
+Default behavior:
+- Reads symbols from `watchlist.txt`
+- Reads input files from `out/indicators/<SYMBOL>.csv`
+- Classifies each row as `UPTREND`, `DOWNTREND`, or `NEUTRAL`
+- Writes per-symbol output to `out/trend/<SYMBOL>.csv`
+- Writes latest per-symbol trend to `out/trend_latest.csv`
+
+## Momentum Strategy
+Compute momentum long/short signals (default length: 24):
+
+```bash
+python3 momentum_strategy.py --length 24
+```
+
+Reduce momentum noise with confirmation and minimum-strength filters:
+
+```bash
+python3 momentum_strategy.py --length 24 --confirm-bars 3 --min-mom0-pct 1.0 --min-mom1-pct 0.2
+```
+
+Default behavior:
+- Reads symbols from `watchlist.txt`
+- Reads input files from `out/daily/<SYMBOL>.csv`
+- Computes `MOM0` and `MOM1`
+- Computes per-bar states:
+  - `MomentumRawState` (unfiltered)
+  - `MomentumCandidate` (strength-filtered)
+  - `MomentumState` (confirmed, persistent)
+- Emits transition events in `MomentumEvent` (`LONG_ENTRY`, `SHORT_ENTRY`, `LONG_TO_SHORT`, `SHORT_TO_LONG`)
+- Writes per-symbol output to `out/momentum/<SYMBOL>.csv`
+- Writes latest per-symbol momentum state to `out/momentum_latest.csv`
+
+## Signal Engine (v1)
+Build cleaner final entries by combining trend regime + momentum transitions + breakout confirmation:
+
+```bash
+python3 signal_engine.py --min-hold-bars 5
+```
+
+Keep trend filter on, but allow entries during `NEUTRAL` trend:
+
+```bash
+python3 signal_engine.py --min-hold-bars 5 --allow-neutral-trend-entries
+```
+
+Default behavior:
+- Reads trend files from `out/trend/<SYMBOL>.csv`
+- Reads momentum files from `out/momentum/<SYMBOL>.csv`
+- Optional breakout confirmation:
+  - set `--breakout-lookback N` (e.g. `20`) to require breakouts
+  - use `0` (default) to disable breakout requirement
+- Long setup requires:
+  - momentum transition into long
+  - trend is `UPTREND` (unless `--disable-trend-filter`)
+  - or trend is `NEUTRAL` if `--allow-neutral-trend-entries`
+  - optional break above prior `N`-bar high
+- Short setup requires:
+  - momentum transition into short
+  - trend is `DOWNTREND` (unless `--disable-trend-filter`)
+  - or trend is `NEUTRAL` if `--allow-neutral-trend-entries`
+  - optional break below prior `N`-bar low
+- Enforces minimum hold bars before reversal (`--min-hold-bars`)
+- Writes per-symbol signal output to `out/signals/<SYMBOL>.csv`
+- Writes latest per-symbol signal state to `out/signal_latest.csv`
+
+## Long-Only Backtest
+Run a cash-only backtest that buys from trend/signal triggers and exits on bearish/stop conditions:
+
+```bash
+python3 backtest_long.py --symbol APO --initial-capital 100000 --allocation-pct 5 --ema-stop-column EMA_50
+```
+
+Add an ATR entry filter (example: require ATR(14) >= 2.0% of close):
+
+```bash
+python3 backtest_long.py --symbol APO --min-atr-pct 2.0 --atr-period 14
+```
+
+Default behavior:
+- Reads signals from `out/signals/<SYMBOL>.csv`
+- Reads trend/EMA data from `out/trend/<SYMBOL>.csv`
+- Executes orders at next-day open (signals are generated after market close)
+- Long-only:
+  - buy trigger: transition into `UPTREND` or signal event `LONG_ENTRY` / `SHORT_TO_LONG`
+  - exit trigger: transition into `DOWNTREND`, signal event `LONG_TO_SHORT`, or close below EMA stop
+- Optional volatility gate for entries:
+  - set `--min-atr-pct X` to require `ATR(atr_period) / Close * 100 >= X`
+  - use `0` (default) to disable ATR gating
+- If buy and exit triggers happen on the same day, exit has priority
+- Uses one trade per day and allocates `allocation_pct` of current equity per buy
+- No margin; buys are limited by available cash
+- Writes:
+  - `out/backtests/<SYMBOL>_trades.csv`
+  - `out/backtests/<SYMBOL>_equity_curve.csv`
+  - `out/backtests/<SYMBOL>_summary.csv`
