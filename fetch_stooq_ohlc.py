@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Fetch daily historical OHLC data from Stooq for symbols in a watchlist."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+from typing import Iterable
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote_plus
+from urllib.request import urlopen
+
+STOOQ_DAILY_URL = "https://stooq.com/q/d/l/?s={symbol}&i=d"
+CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
+
+
+@dataclass
+class FetchResult:
+    symbol: str
+    rows_written: int
+    output_path: Path
+
+
+@dataclass
+class FetchError:
+    symbol: str
+    message: str
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--out-dir", default="out/daily", help="Directory for per-symbol CSV output")
+    parser.add_argument(
+        "--errors-file",
+        default="out/stooq_errors.csv",
+        help="CSV file path for symbol-level errors",
+    )
+    parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
+    parser.add_argument(
+        "--start-date",
+        help="Optional inclusive start date filter in YYYY-MM-DD format",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print resolved Stooq URLs and skip network fetch/writes",
+    )
+    return parser.parse_args()
+
+
+def read_watchlist(path: Path) -> list[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Watchlist not found: {path}")
+
+    symbols: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        symbols.append(line.upper())
+    return symbols
+
+
+def to_stooq_symbol(symbol: str) -> str:
+    lowered = symbol.lower()
+    if "." in lowered:
+        return lowered
+    return f"{lowered}.us"
+
+
+def build_stooq_daily_url(stooq_symbol: str) -> str:
+    return STOOQ_DAILY_URL.format(symbol=quote_plus(stooq_symbol))
+
+
+def parse_iso_date(value: str, *, field_name: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"Invalid {field_name}: {value!r}. Use YYYY-MM-DD.") from exc
+
+
+def fetch_stooq_rows(url: str, timeout: int) -> list[dict[str, str]]:
+    with urlopen(url, timeout=timeout) as response:
+        content = response.read().decode("utf-8")
+
+    reader = csv.DictReader(content.splitlines())
+    if not reader.fieldnames:
+        raise ValueError("Stooq response did not contain CSV headers")
+
+    missing = [col for col in CSV_COLUMNS if col not in reader.fieldnames]
+    if missing:
+        raise ValueError(f"Stooq CSV missing expected columns: {', '.join(missing)}")
+
+    rows = [
+        {col: row.get(col, "") for col in CSV_COLUMNS}
+        for row in reader
+        if any((row.get(col) or "").strip() for col in CSV_COLUMNS)
+    ]
+    if not rows:
+        raise ValueError("No historical rows returned")
+    return rows
+
+
+def filter_rows_by_start_date(rows: list[dict[str, str]], start_date: date | None) -> list[dict[str, str]]:
+    if start_date is None:
+        return rows
+
+    filtered_rows: list[dict[str, str]] = []
+    for row in rows:
+        row_date = parse_iso_date(row["Date"], field_name="row Date")
+        if row_date >= start_date:
+            filtered_rows.append(row)
+    return filtered_rows
+
+
+def write_symbol_csv(path: Path, rows: Iterable[dict[str, str]]) -> int:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    row_count = 0
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_COLUMNS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+            row_count += 1
+
+    return row_count
+
+
+def write_errors_csv(path: Path, errors: list[FetchError]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["symbol", "error"])
+        writer.writeheader()
+        for item in errors:
+            writer.writerow({"symbol": item.symbol, "error": item.message})
+
+
+def main() -> int:
+    args = parse_args()
+
+    watchlist_path = Path(args.watchlist)
+    out_dir = Path(args.out_dir)
+    errors_path = Path(args.errors_file)
+    try:
+        start_date = parse_iso_date(args.start_date, field_name="--start-date") if args.start_date else None
+    except ValueError as exc:
+        print(f"[error] {exc}")
+        return 1
+
+    try:
+        symbols = read_watchlist(watchlist_path)
+    except Exception as exc:
+        print(f"[error] {exc}")
+        return 1
+
+    if not symbols:
+        print("[error] watchlist is empty")
+        return 1
+
+    successes: list[FetchResult] = []
+    errors: list[FetchError] = []
+
+    for symbol in symbols:
+        stooq_symbol = to_stooq_symbol(symbol)
+        url = build_stooq_daily_url(stooq_symbol)
+
+        if args.dry_run:
+            print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
+            continue
+
+        try:
+            rows = fetch_stooq_rows(url=url, timeout=args.timeout)
+            rows = filter_rows_by_start_date(rows, start_date=start_date)
+            output_path = out_dir / f"{symbol}.csv"
+            row_count = write_symbol_csv(output_path, rows)
+            successes.append(FetchResult(symbol=symbol, rows_written=row_count, output_path=output_path))
+            print(f"[ok] {symbol} ({stooq_symbol}) -> {output_path} ({row_count} rows)")
+        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+            message = str(exc)
+            errors.append(FetchError(symbol=symbol, message=message))
+            print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+        except Exception as exc:
+            message = f"Unexpected error: {exc}"
+            errors.append(FetchError(symbol=symbol, message=message))
+            print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+
+    write_errors_csv(errors_path, errors)
+
+    print("\nSummary")
+    mode = "dry-run" if args.dry_run else "fetch"
+    print(f"  mode:    {mode}")
+    print(f"  symbols: {len(symbols)}")
+    print(f"  success: {len(successes)}")
+    print(f"  failed:  {len(errors)}")
+    print(f"  errors file: {errors_path}")
+
+    if args.dry_run:
+        return 0
+
+    return 0 if successes else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

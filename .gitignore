@@ -77,6 +77,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebooks/
 
 # IPython
 profile_default/
@@ -139,6 +140,7 @@ celerybeat.pid
 .envrc
 .venv
 data/
+out/
 env/
 venv/
 ENV/
