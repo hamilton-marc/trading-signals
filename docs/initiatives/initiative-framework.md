@@ -12,6 +12,13 @@ Use this as the bridge between high-level vision and specific epics/initiatives.
 ## Target User
 - Primary user: solo trader/learner (project owner).
 
+## Vision Alignment Anchors
+Each initiative in this file must reinforce at least one of the core vision outcomes:
+- Define entries, exits, and risk before trade placement.
+- Remove discretionary overrides and mid-trade negotiation.
+- Improve discipline and repeatability over optimization complexity.
+- Shift focus from individual trades to system refinement.
+
 ## Core Capabilities
 1. Data ingestion and caching from external providers.
 2. Indicator and strategy computation (trend, momentum, signal state).
@@ -33,9 +40,11 @@ Use this as the bridge between high-level vision and specific epics/initiatives.
 
 ## Success Criteria
 - Reliable daily run with per-symbol fault tolerance.
-- Signal output is understandable and explainable per row.
+- Signal output is understandable and explainable per row (no hidden logic).
 - Multi-timeframe outputs are available and visually verifiable.
 - Backtest metrics are stable enough to compare rule revisions.
+- Manual overrides trend down over time and are documented when used.
+- Rule compliance (entries/exits/risk) is auditable from output artifacts.
 
 ## Product Surface (Artifacts)
 - Scripts: deterministic CLI tools for fetch/compute/signal/backtest.
@@ -43,12 +52,72 @@ Use this as the bridge between high-level vision and specific epics/initiatives.
 - Research UI: notebooks under `notebooks/`.
 - Context docs: milestone and decision snapshots under `docs/`.
 
-## Near-Term Roadmap
-1. Stabilize momentum/trend parity with TradingView behavior by timeframe.
-2. Define a unified signal policy combining daily execution with weekly/monthly context.
-3. Add lightweight regression tests for aggregation and event generation.
-4. Standardize a daily shortlist schema and ranking fields.
-5. Add basic run metadata (run date, params, source) to outputs.
+## Near-Term Initiatives (Vision-Aligned)
+
+### Initiative 1: Rule Definition and Enforcement
+Objective:
+Create explicit, machine-enforced rule contracts for entry, exit, and risk so decisions are not negotiated during volatility.
+
+Supports vision outcomes:
+- Define entries, exits, and risk before trade placement.
+- Remove discretionary overrides and mid-trade negotiation.
+
+Initial deliverables:
+- Formal rule specification docs for active strategies.
+- Output columns that show which rule fired and why.
+- Explicit handling for invalid/ambiguous signal states.
+
+### Initiative 2: Multi-Timeframe Discipline Layer
+Objective:
+Operationalize daily, weekly, and monthly context so the system promotes consistent, precommitted behavior instead of reactive overrides.
+
+Supports vision outcomes:
+- Improve discipline and repeatability over optimization complexity.
+- Shift focus from individual trades to system refinement.
+
+Initial deliverables:
+- Stable timeframe aggregation and signal generation workflows.
+- Documented policy for higher-timeframe context vs execution timeframe.
+- Notebook parity checks for timeframe-based behavior.
+
+### Initiative 3: Execution Auditability and Override Tracking
+Objective:
+Make every decision inspectable and track every override so discipline can be measured and improved.
+
+Supports vision outcomes:
+- Remove discretionary overrides and mid-trade negotiation.
+- Shift focus from individual trades to system refinement.
+
+Initial deliverables:
+- Run metadata and parameter stamps in outputs.
+- Event-level traceability from input to final action.
+- Override logging convention (reason + timestamp + outcome).
+
+### Initiative 4: Reliability and Regression Guardrails
+Objective:
+Increase trust in the system by preventing silent behavior drift in aggregation, indicator computation, and signal events.
+
+Supports vision outcomes:
+- Improve discipline and repeatability over optimization complexity.
+- Shift focus from individual trades to system refinement.
+
+Initial deliverables:
+- Lightweight tests for key transformations and event logic.
+- Baseline comparison snapshots for strategy revisions.
+- Failure-tolerant per-symbol execution reporting.
+
+### Initiative 5: Decision-Support Output Standardization
+Objective:
+Produce consistent daily shortlist artifacts that are clear enough to execute without ad-hoc reinterpretation.
+
+Supports vision outcomes:
+- Define entries, exits, and risk before trade placement.
+- Improve discipline and repeatability over optimization complexity.
+
+Initial deliverables:
+- Standard shortlist schema and ranking fields.
+- Clear per-symbol state summary (trend, momentum, risk context).
+- Stable output locations and naming conventions.
 
 ## Long-Term Direction
 Evolve from indicator playground to a consistent decision-support product:
