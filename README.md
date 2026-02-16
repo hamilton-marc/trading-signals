@@ -110,22 +110,40 @@ Replicate the provided TradingView momentum stop-entry behavior (`length=24` by 
 python3 momentum_strategy_tv.py
 ```
 
-Use a different momentum length and tick size for stop offsets:
+Run on weekly bars:
 
 ```bash
-python3 momentum_strategy_tv.py --length 24 --min-tick 0.01
+python3 momentum_strategy_tv.py --timeframe weekly
+```
+
+Run on monthly bars:
+
+```bash
+python3 momentum_strategy_tv.py --timeframe monthly
+```
+
+Use a different momentum length and tick size:
+
+```bash
+python3 momentum_strategy_tv.py --timeframe weekly --length 24 --min-tick 0.01
 ```
 
 Default behavior:
 - Reads symbols from `watchlist.txt`
-- Reads input files from `out/daily/<SYMBOL>.csv`
+- Supports timeframe selection with `--timeframe daily|weekly|monthly` (default: `daily`)
+- Input defaults by timeframe:
+  - daily: reads `out/daily/<SYMBOL>.csv`
+  - weekly: reads `out/daily/<SYMBOL>.csv` and aggregates into weekly bars
+  - monthly: reads `out/monthly/<SYMBOL>.csv` (or aggregates monthly if daily data is passed)
 - Computes:
   - `MOM0 = Close - Close[length]`
   - `MOM1 = MOM0 - MOM0[1]`
 - While `MOM0 > 0` and `MOM1 > 0`, places long stop at `High + min_tick`; otherwise cancels
 - While `MOM0 < 0` and `MOM1 < 0`, places short stop at `Low - min_tick`; otherwise cancels
-- Writes per-symbol output to `out/momentum_tv/<SYMBOL>.csv`
-- Writes latest per-symbol state to `out/momentum_tv_latest.csv`
+- Output defaults by timeframe:
+  - daily: `out/momentum_tv/<SYMBOL>.csv`, latest `out/momentum_tv_latest.csv`
+  - weekly: `out/momentum_tv_weekly/<SYMBOL>.csv`, latest `out/momentum_tv_weekly_latest.csv`
+  - monthly: `out/momentum_tv_monthly/<SYMBOL>.csv`, latest `out/momentum_tv_monthly_latest.csv`
 
 ## Signal Engine (v1)
 Build cleaner final entries by combining trend regime + momentum transitions + breakout confirmation:
