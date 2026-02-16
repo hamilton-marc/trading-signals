@@ -103,6 +103,30 @@ Default behavior:
 - Writes per-symbol output to `out/momentum/<SYMBOL>.csv`
 - Writes latest per-symbol momentum state to `out/momentum_latest.csv`
 
+## Momentum Strategy (TradingView-Style Stops)
+Replicate the provided TradingView momentum stop-entry behavior (`length=24` by default):
+
+```bash
+python3 momentum_strategy_tv.py
+```
+
+Use a different momentum length and tick size for stop offsets:
+
+```bash
+python3 momentum_strategy_tv.py --length 24 --min-tick 0.01
+```
+
+Default behavior:
+- Reads symbols from `watchlist.txt`
+- Reads input files from `out/daily/<SYMBOL>.csv`
+- Computes:
+  - `MOM0 = Close - Close[length]`
+  - `MOM1 = MOM0 - MOM0[1]`
+- While `MOM0 > 0` and `MOM1 > 0`, places long stop at `High + min_tick`; otherwise cancels
+- While `MOM0 < 0` and `MOM1 < 0`, places short stop at `Low - min_tick`; otherwise cancels
+- Writes per-symbol output to `out/momentum_tv/<SYMBOL>.csv`
+- Writes latest per-symbol state to `out/momentum_tv_latest.csv`
+
 ## Signal Engine (v1)
 Build cleaner final entries by combining trend regime + momentum transitions + breakout confirmation:
 
