@@ -5,21 +5,31 @@
 Trading Signals is a personal, rules-based trading system built to eliminate emotional decision-making and replace discretionary trading with structured, automated execution. It exists to protect against inconsistency, regret, and avoidance by enforcing predefined entry, exit, and risk rules — allowing us to focus on long-term system refinement rather than short-term emotional reactions. This is a long-game engine designed to steadily build financial margin through discipline, not greed.
 
 ## Problem Statement
-Manual chart review across many symbols and timeframes is slow and inconsistent. Discretionary decisions create drift from plan. We need a reliable, rules-driven workflow that transforms market data into consistent decisions.
+Discretionary trading leads to inconsistency, emotional decision-making, and avoidant behavior during volatility. Without predefined exit and risk rules, trades are negotiated in the moment, resulting in regret, drift, and loss of discipline.
+
+We need a systematic, rules-based engine that removes mid-trade negotiation and replaces emotional reactions with predefined structure.
 
 ## Product Principles
-- Keep it simple, inspectable, and reproducible.
-- Prefer transparent rules over black-box models.
-- Build in small, runnable increments.
-- Optimize for learning speed, decision clarity, and disciplined execution.
+- Eliminate emotional bias through predefined entry, exit, and risk rules.
+- Reduce reliance on willpower by enforcing automation where possible.
+- Favor discipline and repeatability over optimization and complexity.
+- Build iteratively, refining the system rather than chasing signals.
+- Protect downside first; upside is a byproduct of structure.
 
 ## Vision Outcome
-Given a watchlist, produce repeatable daily decisions and shortlists with clear signal context across daily, weekly, and monthly views.
+
+Given a watchlist and defined rules, produce consistent, systematic trade decisions that:
+- Define entries, exits, and risk before the trade is placed.
+- Remove discretionary overrides.
+- Encourage long-term compounding through disciplined execution.
+- Allow focus to shift from individual trades to system refinement.
 
 ## Success Criteria
-- The system can be run consistently with minimal manual intervention.
-- Outputs are clear enough to trust, review, and improve over time.
-- Execution behavior is increasingly disciplined and less emotional.
+- Trades are entered and exited according to predefined rules without emotional negotiation.
+- Manual overrides become rare and intentional rather than reactive.
+- Drawdowns are managed according to plan rather than avoided.
+- The system can operate with increasing levels of automation.
+- Decision-making becomes calmer, more structured, and less emotionally charged over time.
 
 ## Related Planning Docs
 - Initiative/Epic framework and concrete implementation detail:
