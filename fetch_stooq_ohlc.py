@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch daily historical OHLC data from Stooq for symbols in a watchlist."""
+"""Fetch historical OHLC data from Stooq for symbols in a watchlist."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus
 from urllib.request import urlopen
 
-STOOQ_DAILY_URL = "https://stooq.com/q/d/l/?s={symbol}&i=d"
+STOOQ_URL_TEMPLATE = "https://stooq.com/q/d/l/?s={symbol}&i={interval}"
 CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
 
 
@@ -33,11 +33,21 @@ class FetchError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--out-dir", default="out/daily", help="Directory for per-symbol CSV output")
+    parser.add_argument(
+        "--interval",
+        choices=["d", "m"],
+        default="d",
+        help="Stooq interval: d=daily, m=monthly (default: d)",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory for per-symbol CSV output (default: out/daily for d, out/monthly for m)",
+    )
     parser.add_argument(
         "--errors-file",
-        default="out/stooq_errors.csv",
-        help="CSV file path for symbol-level errors",
+        default=None,
+        help="CSV file path for symbol-level errors (default: out/stooq_errors.csv for d, out/stooq_monthly_errors.csv for m)",
     )
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
     parser.add_argument(
@@ -72,8 +82,26 @@ def to_stooq_symbol(symbol: str) -> str:
     return f"{lowered}.us"
 
 
-def build_stooq_daily_url(stooq_symbol: str) -> str:
-    return STOOQ_DAILY_URL.format(symbol=quote_plus(stooq_symbol))
+def build_stooq_url(stooq_symbol: str, interval: str) -> str:
+    return STOOQ_URL_TEMPLATE.format(symbol=quote_plus(stooq_symbol), interval=interval)
+
+
+def resolve_output_paths(
+    interval: str,
+    out_dir_arg: str | None,
+    errors_file_arg: str | None,
+) -> tuple[Path, Path]:
+    if out_dir_arg:
+        out_dir = Path(out_dir_arg)
+    else:
+        out_dir = Path("out/daily" if interval == "d" else "out/monthly")
+
+    if errors_file_arg:
+        errors_path = Path(errors_file_arg)
+    else:
+        errors_path = Path("out/stooq_errors.csv" if interval == "d" else "out/stooq_monthly_errors.csv")
+
+    return out_dir, errors_path
 
 
 def parse_iso_date(value: str, *, field_name: str) -> date:
@@ -145,8 +173,11 @@ def main() -> int:
     args = parse_args()
 
     watchlist_path = Path(args.watchlist)
-    out_dir = Path(args.out_dir)
-    errors_path = Path(args.errors_file)
+    out_dir, errors_path = resolve_output_paths(
+        interval=args.interval,
+        out_dir_arg=args.out_dir,
+        errors_file_arg=args.errors_file,
+    )
     try:
         start_date = parse_iso_date(args.start_date, field_name="--start-date") if args.start_date else None
     except ValueError as exc:
@@ -168,7 +199,7 @@ def main() -> int:
 
     for symbol in symbols:
         stooq_symbol = to_stooq_symbol(symbol)
-        url = build_stooq_daily_url(stooq_symbol)
+        url = build_stooq_url(stooq_symbol, interval=args.interval)
 
         if args.dry_run:
             print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
@@ -195,9 +226,12 @@ def main() -> int:
     print("\nSummary")
     mode = "dry-run" if args.dry_run else "fetch"
     print(f"  mode:    {mode}")
+    interval_label = "daily" if args.interval == "d" else "monthly"
+    print(f"  interval:{interval_label} ({args.interval})")
     print(f"  symbols: {len(symbols)}")
     print(f"  success: {len(successes)}")
     print(f"  failed:  {len(errors)}")
+    print(f"  out dir: {out_dir}")
     print(f"  errors file: {errors_path}")
 
     if args.dry_run:

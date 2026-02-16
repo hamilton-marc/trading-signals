@@ -4,11 +4,17 @@ A tool to provide trading signals based on a set of criteria.
 ## Requirements
 - Python 3.10+
 
-## Fetch Daily OHLC From Stooq
+## Fetch OHLC From Stooq (Daily or Monthly)
 Run:
 
 ```bash
 python3 fetch_stooq_ohlc.py
+```
+
+Fetch monthly bars (longer history when available):
+
+```bash
+python3 fetch_stooq_ohlc.py --interval m
 ```
 
 Optional start date filter (inclusive):
@@ -25,9 +31,13 @@ python3 fetch_stooq_ohlc.py --dry-run
 
 Default behavior:
 - Reads symbols from `watchlist.txt`
-- Fetches daily historical OHLCV from Stooq
-- Writes per-symbol CSV files to `out/daily/<SYMBOL>.csv`
-- Writes per-symbol failures to `out/stooq_errors.csv`
+- Fetches historical OHLCV from Stooq
+- Daily (`--interval d`, default):
+  - Writes per-symbol CSV files to `out/daily/<SYMBOL>.csv`
+  - Writes failures to `out/stooq_errors.csv`
+- Monthly (`--interval m`):
+  - Writes per-symbol CSV files to `out/monthly/<SYMBOL>.csv`
+  - Writes failures to `out/stooq_monthly_errors.csv`
 
 ## Compute EMA
 Run EMA-200 from downloaded daily data:
@@ -100,6 +110,12 @@ Build cleaner final entries by combining trend regime + momentum transitions + b
 python3 signal_engine.py --min-hold-bars 5
 ```
 
+Add a higher-timeframe monthly gate for buy-side entries:
+
+```bash
+python3 signal_engine.py --min-hold-bars 5 --monthly-regime-filter
+```
+
 Keep trend filter on, but allow entries during `NEUTRAL` trend:
 
 ```bash
@@ -109,6 +125,22 @@ python3 signal_engine.py --min-hold-bars 5 --allow-neutral-trend-entries
 Default behavior:
 - Reads trend files from `out/trend/<SYMBOL>.csv`
 - Reads momentum files from `out/momentum/<SYMBOL>.csv`
+- Long setup triggers:
+  - momentum transition into long (`LONG_ENTRY` / `SHORT_TO_LONG`)
+  - OR `Close` crossing above `EMA_50` (configurable via `--ema-cross-long-column`)
+  - disable EMA-cross trigger with `--disable-ema-cross-long-trigger`
+- Optional monthly buy-side gate:
+  - enable with `--monthly-regime-filter`
+  - reads monthly OHLC from `out/monthly/<SYMBOL>.csv`
+  - requires running `python3 fetch_stooq_ohlc.py --interval m` first
+  - when enabled, `LONG_ENTRY` and `SHORT_TO_LONG` require monthly `UPTREND`
+  - short-side setups still follow daily logic
+  - monthly trend defaults: `EMA_10/EMA_20`, `buffer=0.5%`, `confirm=2`
+  - tune with:
+    - `--monthly-fast-period`
+    - `--monthly-slow-period`
+    - `--monthly-buffer-pct`
+    - `--monthly-confirm-bars`
 - Optional breakout confirmation:
   - set `--breakout-lookback N` (e.g. `20`) to require breakouts
   - use `0` (default) to disable breakout requirement
