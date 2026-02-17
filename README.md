@@ -263,7 +263,7 @@ python3 mtf_entry_exit_v1.py
 Tune core risk controls (example):
 
 ```bash
-python3 mtf_entry_exit_v1.py --atr-mult 2.0 --trend-fail-bars 2 --kill-max-drawdown-pct 15 --kill-cooldown-bars 8
+python3 mtf_entry_exit_v1.py --atr-mult 2.0 --trend-fail-bars 2 --kill-max-drawdown-pct 15 --kill-cooldown-bars 8 --entry-cross-lookback-bars 15
 ```
 
 Default behavior:
@@ -272,7 +272,10 @@ Default behavior:
 - Entry requires all of:
   - monthly close above monthly EMA (default period `10`)
   - weekly close above weekly EMA (default period `20`)
-  - daily close crosses above daily EMA (default period `50`)
+  - daily trigger (default period `50`) where either:
+    - close crosses above daily EMA on the current bar
+    - or close is above daily EMA and a cross-above occurred within `--entry-cross-lookback-bars` bars (default `15`)
+- Set `--entry-cross-lookback-bars 0` to require same-bar cross only
 - Optional additional entry gate:
   - `--require-momentum-positive-entry` also requires daily momentum > 0
   - momentum uses `Close - Close[momentum_length]` (default `24`)

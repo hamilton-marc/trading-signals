@@ -17,6 +17,7 @@ class StrategyConfig:
     monthly_ema_period: int
     momentum_length: int
     require_momentum_positive_entry: bool
+    entry_cross_lookback_bars: int
     atr_period: int
     atr_mult: float
     trend_fail_bars: int
@@ -76,6 +77,15 @@ def parse_args() -> argparse.Namespace:
         "--require-momentum-positive-entry",
         action="store_true",
         help="Require positive daily momentum in addition to multi-timeframe confluence for entry",
+    )
+    parser.add_argument(
+        "--entry-cross-lookback-bars",
+        type=int,
+        default=15,
+        help=(
+            "Allow daily trigger when close is above daily EMA and a cross-above happened within this many bars "
+            "(default: 15, use 0 to require same-bar cross only)"
+        ),
     )
     parser.add_argument("--atr-period", type=int, default=14, help="ATR period for trailing stop")
     parser.add_argument("--atr-mult", type=float, default=2.5, help="ATR multiplier for trailing stop")
@@ -308,6 +318,7 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
     cooldown_remaining = 0
 
     output_rows: list[dict[str, str]] = []
+    last_cross_above_idx: int | None = None
 
     for idx, row in enumerate(rows):
         open_price = float(row["Open"])
@@ -387,9 +398,20 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
             and prev_close <= prev_ema
             and close_price > d_ema
         )
+        if daily_cross_up:
+            last_cross_above_idx = idx
         mom_positive = mom is not None and mom > 0
 
-        entry_setup = m_up and w_up and daily_cross_up
+        recent_cross_window_ok = (
+            cfg.entry_cross_lookback_bars > 0
+            and d_ema is not None
+            and close_price > d_ema
+            and last_cross_above_idx is not None
+            and (idx - last_cross_above_idx) <= cfg.entry_cross_lookback_bars
+        )
+        daily_trigger = daily_cross_up or recent_cross_window_ok
+
+        entry_setup = m_up and w_up and daily_trigger
         if cfg.require_momentum_positive_entry:
             entry_setup = entry_setup and mom_positive
 
@@ -445,6 +467,8 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
                 "WeeklyUp": "1" if w_up else "0",
                 "DailyEMA": "" if d_ema is None else f"{d_ema:.6f}",
                 "DailyCrossAboveEMA": "1" if daily_cross_up else "0",
+                "DailyTriggerRecentCross": "1" if recent_cross_window_ok else "0",
+                "DailyTrigger": "1" if daily_trigger else "0",
                 "Momentum": "" if mom is None else f"{mom:.6f}",
                 "MomentumPositive": "1" if mom_positive else "0",
                 "EntrySetup": "1" if entry_setup else "0",
@@ -518,6 +542,8 @@ def write_latest(path: Path, rows: list[dict[str, str]]) -> None:
         "MonthlyUp",
         "WeeklyUp",
         "DailyCrossAboveEMA",
+        "DailyTriggerRecentCross",
+        "DailyTrigger",
         "MomentumPositive",
         "EntrySetup",
         "ATRTrailStop",
@@ -608,6 +634,8 @@ def validate_args(args: argparse.Namespace) -> str | None:
         return "--kill-max-drawdown-pct must be >= 0"
     if args.kill_cooldown_bars < 0:
         return "--kill-cooldown-bars must be >= 0"
+    if args.entry_cross_lookback_bars < 0:
+        return "--entry-cross-lookback-bars must be >= 0"
     if args.initial_capital <= 0:
         return "--initial-capital must be > 0"
     return None
@@ -635,6 +663,7 @@ def main() -> int:
         monthly_ema_period=args.monthly_ema_period,
         momentum_length=args.momentum_length,
         require_momentum_positive_entry=args.require_momentum_positive_entry,
+        entry_cross_lookback_bars=args.entry_cross_lookback_bars,
         atr_period=args.atr_period,
         atr_mult=args.atr_mult,
         trend_fail_bars=args.trend_fail_bars,
@@ -674,6 +703,8 @@ def main() -> int:
                     "MonthlyUp": latest.get("MonthlyUp", ""),
                     "WeeklyUp": latest.get("WeeklyUp", ""),
                     "DailyCrossAboveEMA": latest.get("DailyCrossAboveEMA", ""),
+                    "DailyTriggerRecentCross": latest.get("DailyTriggerRecentCross", ""),
+                    "DailyTrigger": latest.get("DailyTrigger", ""),
                     "MomentumPositive": latest.get("MomentumPositive", ""),
                     "EntrySetup": latest.get("EntrySetup", ""),
                     "ATRTrailStop": latest.get("ATRTrailStop", ""),
