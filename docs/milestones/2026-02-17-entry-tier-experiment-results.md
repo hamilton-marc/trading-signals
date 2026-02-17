@@ -48,6 +48,17 @@ Use `tiered_candidate_25_early_50` as the next working candidate:
 
 `relaxed_weekly_full` remains a useful upper-bound reference for capture potential but appears too aggressive for risk consistency on TSLA.
 
+## Decision Summary (Capital Preservation Focus)
+Follow-up discussion clarified practical priorities:
+- Primary objective is capital preservation and psychological sustainability, not pure return maximization.
+- Drawdowns are expected, but we prefer to fail fast on new trades when timing is wrong.
+- Tiered entries are useful because they can provide multiple buy opportunities during strong moves, enabling adds to a winning position.
+
+Operational framing for next chapter:
+- Keep exits disciplined and rules-based.
+- Prefer more candidate opportunities over overly sparse entries.
+- Use tiered sizing to probe early, cut quickly if invalidated, and add when the move confirms.
+
 ## Visual Artifacts
 - Notebook (entries, exits, equity by mode):
   - `notebooks/entry_tier_experiment_lab.ipynb`
