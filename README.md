@@ -4,7 +4,7 @@ A tool to provide trading signals based on a set of criteria.
 ## Requirements
 - Python 3.10+
 
-## Fetch OHLC From Stooq (Daily or Monthly)
+## Fetch OHLC From Stooq (Daily, Weekly, or Monthly)
 Run:
 
 ```bash
@@ -15,6 +15,18 @@ Fetch monthly bars (longer history when available):
 
 ```bash
 python3 fetch_stooq_ohlc.py --interval m
+```
+
+Fetch weekly bars:
+
+```bash
+python3 fetch_stooq_ohlc.py --interval w
+```
+
+Fetch all three timeframes in one run:
+
+```bash
+python3 fetch_stooq_ohlc.py --interval all
 ```
 
 Optional start date filter (inclusive):
@@ -35,9 +47,14 @@ Default behavior:
 - Daily (`--interval d`, default):
   - Writes per-symbol CSV files to `out/daily/<SYMBOL>.csv`
   - Writes failures to `out/stooq_errors.csv`
+- Weekly (`--interval w`):
+  - Writes per-symbol CSV files to `out/weekly/<SYMBOL>.csv`
+  - Writes failures to `out/stooq_weekly_errors.csv`
 - Monthly (`--interval m`):
   - Writes per-symbol CSV files to `out/monthly/<SYMBOL>.csv`
   - Writes failures to `out/stooq_monthly_errors.csv`
+- All (`--interval all`):
+  - runs daily + weekly + monthly fetches in sequence
 
 ## Compute EMA
 Run EMA-200 from downloaded daily data:
@@ -269,6 +286,8 @@ python3 mtf_entry_exit_v1.py --atr-mult 2.0 --trend-fail-bars 2 --kill-max-drawd
 Default behavior:
 - Reads symbols from `watchlist.txt`
 - Reads daily OHLC data from `out/daily/<SYMBOL>.csv`
+- Uses weekly timeframe data from `out/weekly/<SYMBOL>.csv` when available (falls back to daily-derived weekly bars if missing)
+- Uses monthly timeframe data from `out/monthly/<SYMBOL>.csv` when available (falls back to daily-derived monthly bars if missing)
 - Entry requires all of:
   - monthly close above monthly EMA (default period `10`)
   - weekly close above weekly EMA (default period `20`)

@@ -35,19 +35,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
     parser.add_argument(
         "--interval",
-        choices=["d", "m"],
+        choices=["d", "w", "m", "all"],
         default="d",
-        help="Stooq interval: d=daily, m=monthly (default: d)",
+        help="Stooq interval: d=daily, w=weekly, m=monthly, all=d+w+m (default: d)",
     )
     parser.add_argument(
         "--out-dir",
         default=None,
-        help="Directory for per-symbol CSV output (default: out/daily for d, out/monthly for m)",
+        help=(
+            "Directory for per-symbol CSV output "
+            "(default: out/daily for d, out/weekly for w, out/monthly for m)"
+        ),
     )
     parser.add_argument(
         "--errors-file",
         default=None,
-        help="CSV file path for symbol-level errors (default: out/stooq_errors.csv for d, out/stooq_monthly_errors.csv for m)",
+        help=(
+            "CSV file path for symbol-level errors "
+            "(default: out/stooq_errors.csv for d, out/stooq_weekly_errors.csv for w, out/stooq_monthly_errors.csv for m)"
+        ),
     )
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
     parser.add_argument(
@@ -86,6 +92,15 @@ def build_stooq_url(stooq_symbol: str, interval: str) -> str:
     return STOOQ_URL_TEMPLATE.format(symbol=quote_plus(stooq_symbol), interval=interval)
 
 
+def interval_label(interval: str) -> str:
+    labels = {
+        "d": "daily",
+        "w": "weekly",
+        "m": "monthly",
+    }
+    return labels.get(interval, interval)
+
+
 def resolve_output_paths(
     interval: str,
     out_dir_arg: str | None,
@@ -94,12 +109,22 @@ def resolve_output_paths(
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
-        out_dir = Path("out/daily" if interval == "d" else "out/monthly")
+        if interval == "d":
+            out_dir = Path("out/daily")
+        elif interval == "w":
+            out_dir = Path("out/weekly")
+        else:
+            out_dir = Path("out/monthly")
 
     if errors_file_arg:
         errors_path = Path(errors_file_arg)
     else:
-        errors_path = Path("out/stooq_errors.csv" if interval == "d" else "out/stooq_monthly_errors.csv")
+        if interval == "d":
+            errors_path = Path("out/stooq_errors.csv")
+        elif interval == "w":
+            errors_path = Path("out/stooq_weekly_errors.csv")
+        else:
+            errors_path = Path("out/stooq_monthly_errors.csv")
 
     return out_dir, errors_path
 
@@ -173,11 +198,11 @@ def main() -> int:
     args = parse_args()
 
     watchlist_path = Path(args.watchlist)
-    out_dir, errors_path = resolve_output_paths(
-        interval=args.interval,
-        out_dir_arg=args.out_dir,
-        errors_file_arg=args.errors_file,
-    )
+
+    intervals = ["d", "w", "m"] if args.interval == "all" else [args.interval]
+    if len(intervals) > 1 and (args.out_dir or args.errors_file):
+        print("[error] --out-dir and --errors-file are only supported with a single interval run")
+        return 1
     try:
         start_date = parse_iso_date(args.start_date, field_name="--start-date") if args.start_date else None
     except ValueError as exc:
@@ -194,50 +219,71 @@ def main() -> int:
         print("[error] watchlist is empty")
         return 1
 
-    successes: list[FetchResult] = []
-    errors: list[FetchError] = []
+    total_successes = 0
+    total_failures = 0
 
-    for symbol in symbols:
-        stooq_symbol = to_stooq_symbol(symbol)
-        url = build_stooq_url(stooq_symbol, interval=args.interval)
-
-        if args.dry_run:
-            print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
-            continue
-
-        try:
-            rows = fetch_stooq_rows(url=url, timeout=args.timeout)
-            rows = filter_rows_by_start_date(rows, start_date=start_date)
-            output_path = out_dir / f"{symbol}.csv"
-            row_count = write_symbol_csv(output_path, rows)
-            successes.append(FetchResult(symbol=symbol, rows_written=row_count, output_path=output_path))
-            print(f"[ok] {symbol} ({stooq_symbol}) -> {output_path} ({row_count} rows)")
-        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
-            message = str(exc)
-            errors.append(FetchError(symbol=symbol, message=message))
-            print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
-        except Exception as exc:
-            message = f"Unexpected error: {exc}"
-            errors.append(FetchError(symbol=symbol, message=message))
-            print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
-
-    write_errors_csv(errors_path, errors)
-
-    print("\nSummary")
     mode = "dry-run" if args.dry_run else "fetch"
+    print(f"Mode: {mode}")
+    print(f"Intervals: {', '.join(intervals)}")
+    print(f"Symbols: {len(symbols)}")
+
+    for interval in intervals:
+        out_dir, errors_path = resolve_output_paths(
+            interval=interval,
+            out_dir_arg=args.out_dir,
+            errors_file_arg=args.errors_file,
+        )
+
+        print(f"\nInterval {interval_label(interval)} ({interval})")
+        successes: list[FetchResult] = []
+        errors: list[FetchError] = []
+
+        for symbol in symbols:
+            stooq_symbol = to_stooq_symbol(symbol)
+            url = build_stooq_url(stooq_symbol, interval=interval)
+
+            if args.dry_run:
+                print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
+                continue
+
+            try:
+                rows = fetch_stooq_rows(url=url, timeout=args.timeout)
+                rows = filter_rows_by_start_date(rows, start_date=start_date)
+                output_path = out_dir / f"{symbol}.csv"
+                row_count = write_symbol_csv(output_path, rows)
+                successes.append(FetchResult(symbol=symbol, rows_written=row_count, output_path=output_path))
+                print(f"[ok] {symbol} ({stooq_symbol}) -> {output_path} ({row_count} rows)")
+            except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+                message = str(exc)
+                errors.append(FetchError(symbol=symbol, message=message))
+                print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+            except Exception as exc:
+                message = f"Unexpected error: {exc}"
+                errors.append(FetchError(symbol=symbol, message=message))
+                print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+
+        if not args.dry_run:
+            write_errors_csv(errors_path, errors)
+
+        print("  Summary")
+        print(f"    success: {len(successes)}")
+        print(f"    failed:  {len(errors)}")
+        print(f"    out dir: {out_dir}")
+        print(f"    errors file: {errors_path}")
+
+        total_successes += len(successes)
+        total_failures += len(errors)
+
+    print("\nOverall Summary")
     print(f"  mode:    {mode}")
-    interval_label = "daily" if args.interval == "d" else "monthly"
-    print(f"  interval:{interval_label} ({args.interval})")
     print(f"  symbols: {len(symbols)}")
-    print(f"  success: {len(successes)}")
-    print(f"  failed:  {len(errors)}")
-    print(f"  out dir: {out_dir}")
-    print(f"  errors file: {errors_path}")
+    print(f"  success: {total_successes}")
+    print(f"  failed:  {total_failures}")
 
     if args.dry_run:
         return 0
 
-    return 0 if successes else 1
+    return 0 if total_successes > 0 else 1
 
 
 if __name__ == "__main__":

@@ -54,6 +54,16 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
     parser.add_argument("--input-dir", default="out/daily", help="Directory with daily OHLC CSV files")
+    parser.add_argument(
+        "--weekly-input-dir",
+        default="out/weekly",
+        help="Directory with weekly OHLC CSV files (falls back to daily aggregation if missing)",
+    )
+    parser.add_argument(
+        "--monthly-input-dir",
+        default="out/monthly",
+        help="Directory with monthly OHLC CSV files (falls back to daily aggregation if missing)",
+    )
     parser.add_argument("--out-dir", default="out/mtf_entry_exit_v1", help="Directory for per-symbol output CSVs")
     parser.add_argument(
         "--latest-file",
@@ -280,14 +290,39 @@ def read_daily_rows(path: Path) -> list[dict[str, object]]:
     return rows
 
 
-def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig) -> tuple[list[dict[str, str]], SymbolSummary]:
+def read_timeframe_close_rows(path: Path) -> list[tuple[date, float]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows: list[tuple[date, float]] = []
+        for raw in reader:
+            close_price = parse_float(raw.get("Close"))
+            if close_price is None:
+                continue
+            rows.append((date.fromisoformat(raw["Date"]), close_price))
+    rows.sort(key=lambda item: item[0])
+    return rows
+
+
+def run_strategy(
+    symbol: str,
+    rows: list[dict[str, object]],
+    cfg: StrategyConfig,
+    weekly_external: list[tuple[date, float]] | None,
+    monthly_external: list[tuple[date, float]] | None,
+) -> tuple[list[dict[str, str]], SymbolSummary]:
     dates = [row["DateObj"] for row in rows]
     closes = [float(row["Close"]) for row in rows]
     daily_ema = compute_ema(closes, cfg.daily_ema_period)
     momentum = compute_momentum(closes, cfg.momentum_length)
     atr_values = compute_atr_wilder(rows, cfg.atr_period)
 
-    weekly_dates, weekly_closes = aggregate_closes(rows, timeframe="weekly")
+    if weekly_external:
+        weekly_dates = [item[0] for item in weekly_external]
+        weekly_closes = [item[1] for item in weekly_external]
+        weekly_source = "EXTERNAL"
+    else:
+        weekly_dates, weekly_closes = aggregate_closes(rows, timeframe="weekly")
+        weekly_source = "DERIVED_DAILY"
     weekly_ema = compute_ema(weekly_closes, cfg.weekly_ema_period)
     weekly_up_state: list[bool | None] = []
     for idx, close in enumerate(weekly_closes):
@@ -295,7 +330,13 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
         weekly_up_state.append(None if ema is None else close > ema)
     weekly_up = map_completed_state_to_daily(dates, weekly_dates, weekly_up_state)
 
-    monthly_dates, monthly_closes = aggregate_closes(rows, timeframe="monthly")
+    if monthly_external:
+        monthly_dates = [item[0] for item in monthly_external]
+        monthly_closes = [item[1] for item in monthly_external]
+        monthly_source = "EXTERNAL"
+    else:
+        monthly_dates, monthly_closes = aggregate_closes(rows, timeframe="monthly")
+        monthly_source = "DERIVED_DAILY"
     monthly_ema = compute_ema(monthly_closes, cfg.monthly_ema_period)
     monthly_up_state: list[bool | None] = []
     for idx, close in enumerate(monthly_closes):
@@ -479,6 +520,8 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
                 "Close": f"{close_price:.6f}",
                 "MonthlyUp": "1" if m_up else "0",
                 "WeeklyUp": "1" if w_up else "0",
+                "WeeklyTrendSource": weekly_source,
+                "MonthlyTrendSource": monthly_source,
                 "DailyEMA": "" if d_ema is None else f"{d_ema:.6f}",
                 "DailyCrossAboveEMA": "1" if daily_cross_up else "0",
                 "DailyTriggerRecentCross": "1" if recent_cross_window_ok else "0",
@@ -556,6 +599,8 @@ def write_latest(path: Path, rows: list[dict[str, str]]) -> None:
         "Close",
         "MonthlyUp",
         "WeeklyUp",
+        "WeeklyTrendSource",
+        "MonthlyTrendSource",
         "DailyCrossAboveEMA",
         "DailyTriggerRecentCross",
         "DailyTrigger",
@@ -693,6 +738,8 @@ def main() -> int:
     )
 
     input_dir = Path(args.input_dir)
+    weekly_input_dir = Path(args.weekly_input_dir) if args.weekly_input_dir else None
+    monthly_input_dir = Path(args.monthly_input_dir) if args.monthly_input_dir else None
     out_dir = Path(args.out_dir)
     latest_file = Path(args.latest_file)
     summary_file = Path(args.summary_file)
@@ -708,7 +755,27 @@ def main() -> int:
             if not input_path.exists():
                 raise FileNotFoundError(f"Input CSV not found: {input_path}")
             daily_rows = read_daily_rows(input_path)
-            strategy_rows, summary = run_strategy(symbol, daily_rows, cfg)
+
+            weekly_external: list[tuple[date, float]] | None = None
+            monthly_external: list[tuple[date, float]] | None = None
+
+            if weekly_input_dir is not None:
+                weekly_path = weekly_input_dir / f"{symbol}.csv"
+                if weekly_path.exists():
+                    weekly_external = read_timeframe_close_rows(weekly_path)
+
+            if monthly_input_dir is not None:
+                monthly_path = monthly_input_dir / f"{symbol}.csv"
+                if monthly_path.exists():
+                    monthly_external = read_timeframe_close_rows(monthly_path)
+
+            strategy_rows, summary = run_strategy(
+                symbol,
+                daily_rows,
+                cfg,
+                weekly_external=weekly_external,
+                monthly_external=monthly_external,
+            )
 
             output_path = out_dir / f"{symbol}.csv"
             write_rows(output_path, strategy_rows)
@@ -721,6 +788,8 @@ def main() -> int:
                     "Close": latest.get("Close", ""),
                     "MonthlyUp": latest.get("MonthlyUp", ""),
                     "WeeklyUp": latest.get("WeeklyUp", ""),
+                    "WeeklyTrendSource": latest.get("WeeklyTrendSource", ""),
+                    "MonthlyTrendSource": latest.get("MonthlyTrendSource", ""),
                     "DailyCrossAboveEMA": latest.get("DailyCrossAboveEMA", ""),
                     "DailyTriggerRecentCross": latest.get("DailyTriggerRecentCross", ""),
                     "DailyTrigger": latest.get("DailyTrigger", ""),
