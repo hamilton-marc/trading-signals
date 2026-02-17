@@ -281,8 +281,8 @@ Default behavior:
   - momentum uses `Close - Close[momentum_length]` (default `24`)
 - Exit triggers on any one condition:
   - ATR trailing stop breach (default `ATR(14) * 2.5`)
-  - trend-failure bars below daily EMA (default `1`)
-  - equity kill-switch trigger (equity below strategy equity EMA or max drawdown threshold)
+  - trend-failure bars below daily EMA (default `2`)
+  - equity kill-switch trigger (default mode `both`: requires both equity below strategy equity EMA and drawdown threshold breach)
 - Uses next-bar open execution for both entries and exits
 - Applies entry cooldown after kill-switch events (default `10` bars)
 - Writes:

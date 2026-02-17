@@ -22,6 +22,7 @@ class StrategyConfig:
     atr_mult: float
     trend_fail_bars: int
     equity_ema_period: int
+    equity_kill_mode: str
     kill_max_drawdown_pct: float
     kill_cooldown_bars: int
     initial_capital: float
@@ -89,8 +90,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--atr-period", type=int, default=14, help="ATR period for trailing stop")
     parser.add_argument("--atr-mult", type=float, default=2.5, help="ATR multiplier for trailing stop")
-    parser.add_argument("--trend-fail-bars", type=int, default=1, help="Consecutive bars below daily EMA required for exit")
+    parser.add_argument("--trend-fail-bars", type=int, default=2, help="Consecutive bars below daily EMA required for exit")
     parser.add_argument("--equity-ema-period", type=int, default=50, help="Equity EMA period for kill-switch monitoring")
+    parser.add_argument(
+        "--equity-kill-mode",
+        choices=["any", "both"],
+        default="both",
+        help=(
+            "Kill-switch logic: 'any' exits when equity is below equity EMA OR drawdown exceeds threshold; "
+            "'both' requires both conditions (default: both)"
+        ),
+    )
     parser.add_argument(
         "--kill-max-drawdown-pct",
         type=float,
@@ -430,7 +440,11 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
             trend_fail_count = 0
         trend_fail_exit = shares > 0 and trend_fail_count >= cfg.trend_fail_bars
 
-        equity_kill = shares > 0 and (equity_below_ema or drawdown_pct >= cfg.kill_max_drawdown_pct)
+        equity_drawdown_trip = drawdown_pct >= cfg.kill_max_drawdown_pct
+        if cfg.equity_kill_mode == "both":
+            equity_kill = shares > 0 and equity_below_ema and equity_drawdown_trip
+        else:
+            equity_kill = shares > 0 and (equity_below_ema or equity_drawdown_trip)
         if equity_kill and cfg.kill_cooldown_bars > 0 and cooldown_remaining < cfg.kill_cooldown_bars:
             cooldown_remaining = cfg.kill_cooldown_bars
 
@@ -484,6 +498,7 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
                 "DrawdownPct": f"{drawdown_pct:.6f}",
                 "EquityEMA": "" if equity_ema is None else f"{equity_ema:.6f}",
                 "EquityBelowEMA": "1" if equity_below_ema else "0",
+                "EquityDrawdownTrip": "1" if equity_drawdown_trip else "0",
                 "EquityKill": "1" if equity_kill else "0",
                 "CooldownRemaining": str(cooldown_remaining),
                 "PositionState": "LONG" if shares > 0 else "FLAT",
@@ -550,6 +565,7 @@ def write_latest(path: Path, rows: list[dict[str, str]]) -> None:
         "TrendFailCount",
         "Equity",
         "DrawdownPct",
+        "EquityDrawdownTrip",
         "EquityKill",
         "CooldownRemaining",
         "PositionState",
@@ -630,6 +646,8 @@ def validate_args(args: argparse.Namespace) -> str | None:
         return "--trend-fail-bars must be > 0"
     if args.equity_ema_period <= 0:
         return "--equity-ema-period must be > 0"
+    if args.equity_kill_mode not in {"any", "both"}:
+        return "--equity-kill-mode must be either 'any' or 'both'"
     if args.kill_max_drawdown_pct < 0:
         return "--kill-max-drawdown-pct must be >= 0"
     if args.kill_cooldown_bars < 0:
@@ -668,6 +686,7 @@ def main() -> int:
         atr_mult=args.atr_mult,
         trend_fail_bars=args.trend_fail_bars,
         equity_ema_period=args.equity_ema_period,
+        equity_kill_mode=args.equity_kill_mode,
         kill_max_drawdown_pct=args.kill_max_drawdown_pct,
         kill_cooldown_bars=args.kill_cooldown_bars,
         initial_capital=args.initial_capital,
@@ -711,6 +730,7 @@ def main() -> int:
                     "TrendFailCount": latest.get("TrendFailCount", ""),
                     "Equity": latest.get("Equity", ""),
                     "DrawdownPct": latest.get("DrawdownPct", ""),
+                    "EquityDrawdownTrip": latest.get("EquityDrawdownTrip", ""),
                     "EquityKill": latest.get("EquityKill", ""),
                     "CooldownRemaining": latest.get("CooldownRemaining", ""),
                     "PositionState": latest.get("PositionState", ""),
