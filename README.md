@@ -285,3 +285,6 @@ Default behavior:
   - latest per-symbol status: `out/mtf_entry_exit_v1_latest.csv`
   - per-symbol summary: `out/mtf_entry_exit_v1_summary.csv`
   - symbol-level failures: `out/mtf_entry_exit_v1_errors.csv`
+
+Visualization notebook:
+- `notebooks/mtf_entry_exit_v1_lab.ipynb` plots price/actions, equity/drawdown, and confluence/cooldown state.
