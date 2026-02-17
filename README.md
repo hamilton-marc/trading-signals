@@ -252,3 +252,36 @@ Default behavior:
   - `out/backtests/<SYMBOL>_trades.csv`
   - `out/backtests/<SYMBOL>_equity_curve.csv`
   - `out/backtests/<SYMBOL>_summary.csv`
+
+## Multi-Timeframe Entry/Exit (v1)
+Run a long-only strategy with strict multi-timeframe entry confluence and asymmetric exits:
+
+```bash
+python3 mtf_entry_exit_v1.py
+```
+
+Tune core risk controls (example):
+
+```bash
+python3 mtf_entry_exit_v1.py --atr-mult 2.0 --trend-fail-bars 2 --kill-max-drawdown-pct 15 --kill-cooldown-bars 8
+```
+
+Default behavior:
+- Reads symbols from `watchlist.txt`
+- Reads daily OHLC data from `out/daily/<SYMBOL>.csv`
+- Entry requires all of:
+  - monthly close above monthly EMA (default period `10`)
+  - weekly close above weekly EMA (default period `20`)
+  - daily close crosses above daily EMA (default period `50`)
+  - daily momentum is positive (`Close - Close[momentum_length]`, default `24`)
+- Exit triggers on any one condition:
+  - ATR trailing stop breach (default `ATR(14) * 2.5`)
+  - trend-failure bars below daily EMA (default `1`)
+  - equity kill-switch trigger (equity below strategy equity EMA or max drawdown threshold)
+- Uses next-bar open execution for both entries and exits
+- Applies entry cooldown after kill-switch events (default `10` bars)
+- Writes:
+  - per-symbol diagnostics: `out/mtf_entry_exit_v1/<SYMBOL>.csv`
+  - latest per-symbol status: `out/mtf_entry_exit_v1_latest.csv`
+  - per-symbol summary: `out/mtf_entry_exit_v1_summary.csv`
+  - symbol-level failures: `out/mtf_entry_exit_v1_errors.csv`
