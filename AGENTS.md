@@ -70,6 +70,17 @@ Do not hard-wire assumptions that make provider changes difficult.
 
 ---
 
+## Security Hygiene
+
+- Never commit credentials, tokens, API keys, private keys, `.env` values, or authentication cookies.
+- Do not commit personally identifiable information (PII) unless explicitly required for a task.
+- Avoid leaking local machine details in tracked artifacts (for example absolute paths in notebook outputs).
+- Keep generated outputs and caches in ignored locations unless they are intentionally part of versioned results.
+- Before commit/push, run configured secret scanning checks when available (`pre-commit`, CI workflows).
+- If a potential leak is found, stop and remediate before continuing (remove from files, regenerate outputs, re-check).
+
+---
+
 ## Error Handling
 
 - One symbol failing should not crash the entire run.
