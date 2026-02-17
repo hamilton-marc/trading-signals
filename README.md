@@ -293,3 +293,25 @@ Default behavior:
 
 Visualization notebook:
 - `notebooks/mtf_entry_exit_v1_lab.ipynb` plots price/actions, equity/drawdown, and confluence/cooldown state.
+
+## MTF v1 Hardening Harness (APO, No Notebook Required)
+Run programmatic validation and parameter sweep against the current APO baseline:
+
+```bash
+python3 mtf_v1_hardening.py
+```
+
+What it does:
+- Runs APO-only experiments for selected strategy knobs.
+- Computes baseline-vs-variant metrics.
+- Applies gate checks for:
+  - full-sample performance vs baseline,
+  - drawdown guardrails,
+  - trade-count and hold-duration sanity,
+  - walk-forward segment competitiveness.
+- Ranks results and writes leaderboard output.
+
+Output artifacts:
+- `out/hardening/mtf_v1_leaderboard.csv`
+
+This enables autonomous math-based validation without opening Jupyter notebooks for each iteration.
