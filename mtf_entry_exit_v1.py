@@ -16,6 +16,7 @@ class StrategyConfig:
     weekly_ema_period: int
     monthly_ema_period: int
     momentum_length: int
+    require_momentum_positive_entry: bool
     atr_period: int
     atr_mult: float
     trend_fail_bars: int
@@ -71,6 +72,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weekly-ema-period", type=int, default=20, help="Weekly EMA period for higher timeframe filter")
     parser.add_argument("--monthly-ema-period", type=int, default=10, help="Monthly EMA period for higher timeframe filter")
     parser.add_argument("--momentum-length", type=int, default=24, help="Daily momentum lookback length")
+    parser.add_argument(
+        "--require-momentum-positive-entry",
+        action="store_true",
+        help="Require positive daily momentum in addition to multi-timeframe confluence for entry",
+    )
     parser.add_argument("--atr-period", type=int, default=14, help="ATR period for trailing stop")
     parser.add_argument("--atr-mult", type=float, default=2.5, help="ATR multiplier for trailing stop")
     parser.add_argument("--trend-fail-bars", type=int, default=1, help="Consecutive bars below daily EMA required for exit")
@@ -383,7 +389,9 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
         )
         mom_positive = mom is not None and mom > 0
 
-        entry_setup = m_up and w_up and daily_cross_up and mom_positive
+        entry_setup = m_up and w_up and daily_cross_up
+        if cfg.require_momentum_positive_entry:
+            entry_setup = entry_setup and mom_positive
 
         atr_trail_candidate: float | None = None
         if shares > 0 and atr is not None:
@@ -440,6 +448,7 @@ def run_strategy(symbol: str, rows: list[dict[str, object]], cfg: StrategyConfig
                 "Momentum": "" if mom is None else f"{mom:.6f}",
                 "MomentumPositive": "1" if mom_positive else "0",
                 "EntrySetup": "1" if entry_setup else "0",
+                "EntryMomentumConfirm": "1" if mom_positive else "0",
                 "ATR": "" if atr is None else f"{atr:.6f}",
                 "ATRTrailCandidate": "" if atr_trail_candidate is None else f"{atr_trail_candidate:.6f}",
                 "ATRTrailStop": "" if trail_stop is None else f"{trail_stop:.6f}",
@@ -625,6 +634,7 @@ def main() -> int:
         weekly_ema_period=args.weekly_ema_period,
         monthly_ema_period=args.monthly_ema_period,
         momentum_length=args.momentum_length,
+        require_momentum_positive_entry=args.require_momentum_positive_entry,
         atr_period=args.atr_period,
         atr_mult=args.atr_mult,
         trend_fail_bars=args.trend_fail_bars,

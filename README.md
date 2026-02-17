@@ -273,7 +273,9 @@ Default behavior:
   - monthly close above monthly EMA (default period `10`)
   - weekly close above weekly EMA (default period `20`)
   - daily close crosses above daily EMA (default period `50`)
-  - daily momentum is positive (`Close - Close[momentum_length]`, default `24`)
+- Optional additional entry gate:
+  - `--require-momentum-positive-entry` also requires daily momentum > 0
+  - momentum uses `Close - Close[momentum_length]` (default `24`)
 - Exit triggers on any one condition:
   - ATR trailing stop breach (default `ATR(14) * 2.5`)
   - trend-failure bars below daily EMA (default `1`)
