@@ -128,6 +128,18 @@ Use a different momentum length and tick size:
 python3 momentum_strategy_tv.py --timeframe weekly --length 24 --min-tick 0.01
 ```
 
+Reduce churn in sideways markets with trend-efficiency + EMA-spread guards:
+
+```bash
+python3 momentum_strategy_tv.py --timeframe daily --sideways-filter --er-lookback 20 --min-er 0.35 --ema-fast 10 --ema-slow 30 --min-ema-spread-pct 1.0
+```
+
+Reduce rapid reversal churn with a minimum hold period:
+
+```bash
+python3 momentum_strategy_tv.py --timeframe daily --min-hold-bars 5
+```
+
 Default behavior:
 - Reads symbols from `watchlist.txt`
 - Supports timeframe selection with `--timeframe daily|weekly|monthly` (default: `daily`)
@@ -138,6 +150,16 @@ Default behavior:
 - Computes:
   - `MOM0 = Close - Close[length]`
   - `MOM1 = MOM0 - MOM0[1]`
+- Optional sideways guard (`--sideways-filter`):
+  - requires `TrendEfficiency >= min_er`
+  - requires `EMA spread % >= min_ema_spread_pct`
+  - guard columns in output:
+    - `TrendEfficiency`
+    - `EmaSpreadPct`
+    - `SidewaysFilterPass`
+- Optional reversal hold guard:
+  - `--min-hold-bars N` delays reversal entries until current state is held for at least `N` bars
+  - use `0` (default) to disable hold guard
 - While `MOM0 > 0` and `MOM1 > 0`, places long stop at `High + min_tick`; otherwise cancels
 - While `MOM0 < 0` and `MOM1 < 0`, places short stop at `Low - min_tick`; otherwise cancels
 - Output defaults by timeframe:

@@ -59,6 +59,37 @@ def parse_args() -> argparse.Namespace:
         default=0.01,
         help="Tick size used for stop offsets (default: 0.01)",
     )
+    parser.add_argument(
+        "--sideways-filter",
+        action="store_true",
+        help="Enable sideways-market guards (efficiency ratio + EMA spread)",
+    )
+    parser.add_argument(
+        "--er-lookback",
+        type=int,
+        default=20,
+        help="Lookback bars for trend efficiency ratio (default: 20)",
+    )
+    parser.add_argument(
+        "--min-er",
+        type=float,
+        default=0.35,
+        help="Minimum trend efficiency ratio to allow new entries (default: 0.35)",
+    )
+    parser.add_argument("--ema-fast", type=int, default=10, help="Fast EMA for sideways filter (default: 10)")
+    parser.add_argument("--ema-slow", type=int, default=30, help="Slow EMA for sideways filter (default: 30)")
+    parser.add_argument(
+        "--min-ema-spread-pct",
+        type=float,
+        default=1.0,
+        help="Minimum EMA spread percent of close to allow new entries (default: 1.0)",
+    )
+    parser.add_argument(
+        "--min-hold-bars",
+        type=int,
+        default=0,
+        help="Minimum bars to hold a position before allowing reversal (default: 0, disabled)",
+    )
     return parser.parse_args()
 
 
@@ -246,6 +277,41 @@ def compute_momentum(values: list[float], length: int) -> list[float | None]:
     return output
 
 
+def compute_ema(values: list[float], period: int) -> list[float | None]:
+    output: list[float | None] = [None] * len(values)
+    if period <= 0 or len(values) < period:
+        return output
+
+    smoothing = 2.0 / (period + 1.0)
+    seed = sum(values[:period]) / period
+    output[period - 1] = seed
+
+    prev = seed
+    for idx in range(period, len(values)):
+        current = (values[idx] - prev) * smoothing + prev
+        output[idx] = current
+        prev = current
+
+    return output
+
+
+def compute_efficiency_ratio(values: list[float], lookback: int) -> list[float | None]:
+    output: list[float | None] = [None] * len(values)
+    if lookback <= 0:
+        return output
+
+    for idx in range(lookback, len(values)):
+        net_change = abs(values[idx] - values[idx - lookback])
+        volatility_sum = 0.0
+        for inner in range(idx - lookback + 1, idx + 1):
+            volatility_sum += abs(values[inner] - values[inner - 1])
+        if volatility_sum == 0:
+            output[idx] = 0.0
+        else:
+            output[idx] = net_change / volatility_sum
+    return output
+
+
 def momentum_raw_state(mom0: float | None, mom1: float | None) -> str:
     if mom0 is None or mom1 is None:
         return "NEUTRAL"
@@ -256,7 +322,18 @@ def momentum_raw_state(mom0: float | None, mom1: float | None) -> str:
     return "NEUTRAL"
 
 
-def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> list[dict[str, str]]:
+def enrich_rows(
+    rows: list[dict[str, str]],
+    length: int,
+    min_tick: float,
+    use_sideways_filter: bool,
+    er_lookback: int,
+    min_er: float,
+    ema_fast: int,
+    ema_slow: int,
+    min_ema_spread_pct: float,
+    min_hold_bars: int,
+) -> list[dict[str, str]]:
     ordered = sorted(rows, key=lambda row: row["Date"])
 
     closes: list[float] = []
@@ -277,7 +354,12 @@ def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> lis
             continue
         mom1[idx] = mom0[idx] - mom0[idx - 1]
 
+    trend_efficiency = compute_efficiency_ratio(closes, lookback=er_lookback)
+    ema_fast_values = compute_ema(closes, period=ema_fast)
+    ema_slow_values = compute_ema(closes, period=ema_slow)
+
     state = "FLAT"
+    bars_in_state = 0
     pending_long_stop: float | None = None
     pending_short_stop: float | None = None
 
@@ -288,6 +370,9 @@ def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> lis
         action = ""
         fill_price: float | None = None
 
+        if state != "FLAT":
+            bars_in_state += 1
+
         # Fill stop orders carried from the prior bar.
         if pending_long_stop is not None and high is not None and high >= pending_long_stop:
             if state == "FLAT":
@@ -297,6 +382,7 @@ def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> lis
                 event = "SHORT_TO_LONG"
                 action = "REVERSE_TO_LONG"
             state = "LONG"
+            bars_in_state = 0
             fill_price = pending_long_stop
             pending_long_stop = None
             pending_short_stop = None
@@ -308,13 +394,30 @@ def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> lis
                 event = "LONG_TO_SHORT"
                 action = "REVERSE_TO_SHORT"
             state = "SHORT"
+            bars_in_state = 0
             fill_price = pending_short_stop
             pending_long_stop = None
             pending_short_stop = None
 
         raw_state = momentum_raw_state(mom0[idx], mom1[idx])
-        long_condition = raw_state == "LONG"
-        short_condition = raw_state == "SHORT"
+        trend_eff = trend_efficiency[idx]
+        fast_ema = ema_fast_values[idx]
+        slow_ema = ema_slow_values[idx]
+        close = closes[idx]
+
+        ema_spread_pct: float | None = None
+        if fast_ema is not None and slow_ema is not None and close != 0:
+            ema_spread_pct = (abs(fast_ema - slow_ema) / close) * 100.0
+
+        er_pass = trend_eff is not None and trend_eff >= min_er
+        spread_pass = ema_spread_pct is not None and ema_spread_pct >= min_ema_spread_pct
+        sideways_filter_pass = (er_pass and spread_pass) if use_sideways_filter else True
+
+        can_flip_to_long = state != "SHORT" or bars_in_state >= min_hold_bars
+        can_flip_to_short = state != "LONG" or bars_in_state >= min_hold_bars
+
+        long_condition = raw_state == "LONG" and sideways_filter_pass and can_flip_to_long
+        short_condition = raw_state == "SHORT" and sideways_filter_pass and can_flip_to_short
 
         # TradingView logic: keep/replace stop entry while condition is true; cancel otherwise.
         pending_long_stop = high + min_tick if long_condition and high is not None else None
@@ -323,11 +426,17 @@ def enrich_rows(rows: list[dict[str, str]], length: int, min_tick: float) -> lis
         row["MOM0"] = "" if mom0[idx] is None else f"{mom0[idx]:.6f}"
         row["MOM1"] = "" if mom1[idx] is None else f"{mom1[idx]:.6f}"
         row["MomentumRawState"] = raw_state
+        row["TrendEfficiency"] = "" if trend_eff is None else f"{trend_eff:.6f}"
+        row["EmaFast"] = "" if fast_ema is None else f"{fast_ema:.6f}"
+        row["EmaSlow"] = "" if slow_ema is None else f"{slow_ema:.6f}"
+        row["EmaSpreadPct"] = "" if ema_spread_pct is None else f"{ema_spread_pct:.6f}"
+        row["SidewaysFilterPass"] = "1" if sideways_filter_pass else "0"
         row["MomLongCondition"] = "1" if long_condition else "0"
         row["MomShortCondition"] = "1" if short_condition else "0"
         row["LongStop"] = "" if pending_long_stop is None else f"{pending_long_stop:.6f}"
         row["ShortStop"] = "" if pending_short_stop is None else f"{pending_short_stop:.6f}"
         row["FillPrice"] = "" if fill_price is None else f"{fill_price:.6f}"
+        row["BarsInState"] = str(bars_in_state)
         row["MomentumState"] = state
         row["MomentumEvent"] = event
         row["MomentumSignal"] = state
@@ -360,8 +469,12 @@ def write_latest(path: Path, rows: list[dict[str, str]]) -> None:
                 "MOM0",
                 "MOM1",
                 "MomentumRawState",
+                "TrendEfficiency",
+                "EmaSpreadPct",
+                "SidewaysFilterPass",
                 "MomentumState",
                 "MomentumEvent",
+                "BarsInState",
                 "LongStop",
                 "ShortStop",
                 "FillPrice",
@@ -390,12 +503,37 @@ def main() -> int:
         return 1
     length = args.length
     min_tick = args.min_tick
+    use_sideways_filter = args.sideways_filter
+    er_lookback = args.er_lookback
+    min_er = args.min_er
+    ema_fast = args.ema_fast
+    ema_slow = args.ema_slow
+    min_ema_spread_pct = args.min_ema_spread_pct
+    min_hold_bars = args.min_hold_bars
 
     if length <= 0:
         print("[error] length must be > 0")
         return 1
     if min_tick <= 0:
         print("[error] min-tick must be > 0")
+        return 1
+    if er_lookback <= 0:
+        print("[error] er-lookback must be > 0")
+        return 1
+    if min_er < 0 or min_er > 1:
+        print("[error] min-er must be between 0 and 1")
+        return 1
+    if ema_fast <= 0 or ema_slow <= 0:
+        print("[error] ema-fast and ema-slow must be > 0")
+        return 1
+    if ema_fast >= ema_slow:
+        print("[error] ema-fast should be smaller than ema-slow")
+        return 1
+    if min_ema_spread_pct < 0:
+        print("[error] min-ema-spread-pct must be >= 0")
+        return 1
+    if min_hold_bars < 0:
+        print("[error] min-hold-bars must be >= 0")
         return 1
 
     try:
@@ -430,7 +568,18 @@ def main() -> int:
             rows = aggregate_rows(source_rows, timeframe=timeframe)
             if not rows:
                 raise ValueError(f"No rows available for timeframe={timeframe} in {input_path}")
-            enriched = enrich_rows(rows, length=length, min_tick=min_tick)
+            enriched = enrich_rows(
+                rows,
+                length=length,
+                min_tick=min_tick,
+                use_sideways_filter=use_sideways_filter,
+                er_lookback=er_lookback,
+                min_er=min_er,
+                ema_fast=ema_fast,
+                ema_slow=ema_slow,
+                min_ema_spread_pct=min_ema_spread_pct,
+                min_hold_bars=min_hold_bars,
+            )
 
             output_path = out_dir / f"{symbol}.csv"
             write_rows(output_path, enriched)
@@ -444,8 +593,12 @@ def main() -> int:
                     "MOM0": latest.get("MOM0", ""),
                     "MOM1": latest.get("MOM1", ""),
                     "MomentumRawState": latest.get("MomentumRawState", ""),
+                    "TrendEfficiency": latest.get("TrendEfficiency", ""),
+                    "EmaSpreadPct": latest.get("EmaSpreadPct", ""),
+                    "SidewaysFilterPass": latest.get("SidewaysFilterPass", ""),
                     "MomentumState": latest.get("MomentumState", ""),
                     "MomentumEvent": latest.get("MomentumEvent", ""),
+                    "BarsInState": latest.get("BarsInState", ""),
                     "LongStop": latest.get("LongStop", ""),
                     "ShortStop": latest.get("ShortStop", ""),
                     "FillPrice": latest.get("FillPrice", ""),
@@ -467,6 +620,12 @@ def main() -> int:
     print(f"  timeframe: {timeframe}")
     print(f"  length: {length}")
     print(f"  min_tick: {min_tick}")
+    print(f"  sideways_filter: {'on' if use_sideways_filter else 'off'}")
+    print(
+        f"  filter params: er_lookback={er_lookback} min_er={min_er} "
+        f"ema_fast={ema_fast} ema_slow={ema_slow} min_ema_spread_pct={min_ema_spread_pct}"
+    )
+    print(f"  min_hold_bars: {min_hold_bars}")
     print(f"  symbols: {len(symbols)}")
     print(f"  success: {len(successes)}")
     print(f"  failed:  {len(errors)}")
