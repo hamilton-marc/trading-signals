@@ -4,6 +4,23 @@ A tool to provide trading signals based on a set of criteria.
 ## Requirements
 - Python 3.10+
 
+## Project Layout
+The repository now uses a clearer script hierarchy:
+
+- `scripts/data/`:
+  - market data fetchers
+- `scripts/indicators/`:
+  - EMA, trend, and momentum calculations
+- `scripts/signals/`:
+  - signal-engine logic
+- `scripts/strategies/`:
+  - backtests, MTF strategies, and experiments
+- `scripts/reports/`:
+  - shortlist/ranking report generators
+
+For backwards compatibility, root-level script names are kept as thin wrappers.
+You can continue using commands like `python3 fetch_stooq_ohlc.py` and `python3 signal_engine.py`.
+
 ## Fetch OHLC From Stooq (Daily, Weekly, or Monthly)
 Run:
 

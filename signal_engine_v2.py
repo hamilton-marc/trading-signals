@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""Signal Engine v2 entrypoint.
+"""Compatibility wrapper for scripts.signals.signal_engine_v2."""
 
-This currently runs the active signal engine implementation from signal_engine.py.
-"""
-
-from signal_engine import main
+from scripts.signals.signal_engine_v2 import main
 
 
 if __name__ == "__main__":
