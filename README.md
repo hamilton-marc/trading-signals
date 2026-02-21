@@ -41,6 +41,12 @@ Verify resolved Stooq URLs without fetching:
 python3 fetch_stooq_ohlc.py --dry-run
 ```
 
+Throttle requests with a small delay between symbols:
+
+```bash
+python3 fetch_stooq_ohlc.py --interval all --delay-seconds 0.4
+```
+
 Default behavior:
 - Reads symbols from `watchlist.txt`
 - Fetches historical OHLCV from Stooq

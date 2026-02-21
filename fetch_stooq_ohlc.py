@@ -8,6 +8,7 @@ import csv
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+import time
 from typing import Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus
@@ -56,6 +57,12 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=0.0,
+        help="Optional delay after each symbol fetch attempt (default: 0.0)",
+    )
     parser.add_argument(
         "--start-date",
         help="Optional inclusive start date filter in YYYY-MM-DD format",
@@ -219,6 +226,10 @@ def main() -> int:
         print("[error] watchlist is empty")
         return 1
 
+    if args.delay_seconds < 0:
+        print("[error] --delay-seconds must be >= 0")
+        return 1
+
     total_successes = 0
     total_failures = 0
 
@@ -226,6 +237,7 @@ def main() -> int:
     print(f"Mode: {mode}")
     print(f"Intervals: {', '.join(intervals)}")
     print(f"Symbols: {len(symbols)}")
+    print(f"Delay seconds: {args.delay_seconds}")
 
     for interval in intervals:
         out_dir, errors_path = resolve_output_paths(
@@ -261,6 +273,9 @@ def main() -> int:
                 message = f"Unexpected error: {exc}"
                 errors.append(FetchError(symbol=symbol, message=message))
                 print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+            finally:
+                if args.delay_seconds > 0:
+                    time.sleep(args.delay_seconds)
 
         if not args.dry_run:
             write_errors_csv(errors_path, errors)
