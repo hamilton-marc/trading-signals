@@ -190,6 +190,51 @@ Default behavior:
   - weekly: `out/momentum_tv_weekly/<SYMBOL>.csv`, latest `out/momentum_tv_weekly_latest.csv`
   - monthly: `out/momentum_tv_monthly/<SYMBOL>.csv`, latest `out/momentum_tv_monthly_latest.csv`
 
+## Momentum Strategy (Strict Pine Match)
+Run a strict replica of the Pine stop-entry behavior without added sideways/hold guards:
+
+```bash
+python3 momentum_strategy_tv_match.py --symbols APO --timeframe weekly --length 24 --min-tick 0.01
+```
+
+Default behavior:
+- Reads symbols from `watchlist.txt` (or `--symbols`)
+- Uses timeframe-specific input defaults:
+  - daily: `out/daily`
+  - weekly: `out/weekly`
+  - monthly: `out/monthly`
+- Uses strict formula/order model:
+  - `MOM0 = Close - Close[length]`
+  - `MOM1 = MOM0 - MOM0[1]`
+  - when `MOM0 > 0 and MOM1 > 0`, place `MomLE` stop at `High + min_tick`; else cancel
+  - when `MOM0 < 0 and MOM1 < 0`, place `MomSE` stop at `Low - min_tick`; else cancel
+  - pending orders can fill on subsequent bars
+  - reversal fills emit `TradeDelta` `+2` / `-2` to mirror TradingView strategy reversals
+- Writes:
+  - per-symbol output: `out/momentum_tv_match_<timeframe>/<SYMBOL>.csv`
+  - latest summary: `out/momentum_tv_match_<timeframe>_latest.csv`
+  - errors: `out/momentum_tv_match_<timeframe>_errors.csv`
+
+## Recent Momentum Report (Ranked)
+Build a ranked shortlist of symbols that produced a recent `MomLE` buy signal:
+
+```bash
+python3 recent_momentum_report.py
+```
+
+Default behavior:
+- Reads strict momentum outputs from `out/momentum_tv_match_daily/*.csv`
+- Keeps symbols where `MomLE` occurred in the last `5` bars
+- Computes a continuation-quality score using:
+  - trend alignment (`Close`, `EMA_50`, `EMA_200`)
+  - EMA slope strength
+  - ATR-based volatility normalization
+  - extension penalty for over-stretched names
+  - signal freshness bonus
+- Writes:
+  - ranked CSV: `out/reports/recent_momentum_buys_5d.csv`
+  - ranked markdown: `out/reports/recent_momentum_buys_5d.md`
+
 ## Signal Engine (v1)
 Build cleaner final entries by combining trend regime + momentum transitions + breakout confirmation:
 
