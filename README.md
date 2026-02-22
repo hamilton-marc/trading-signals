@@ -23,11 +23,19 @@ Implementation code is organized under `scripts/`:
 - `scripts/signals/`: signal engine
 - `scripts/strategies/`: backtests + MTF systems
 - `scripts/reports/`: shortlist/ranking reports
+- `scripts/operations/`: end-to-end run orchestration
+- `scripts/maintenance/`: housekeeping + layout checks
 
 Run commands via modules: `python3 -m scripts.<group>.<script>`
 Root-level script wrappers were removed in the latest reorganization.
 
 ## Quick Workflow (Recommended)
+
+Single-command runner:
+
+```bash
+python3 -m scripts.operations.daily_run --label daily --fetch-interval all
+```
 
 1. Refresh market data
 

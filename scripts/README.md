@@ -12,6 +12,8 @@ Implementation modules are organized by responsibility:
   - backtests, MTF systems, and validation harnesses
 - `reports/`
   - ranked shortlist and report builders
+- `operations/`
+  - end-to-end workflow runners
 
 Run modules directly, for example:
 
@@ -19,6 +21,7 @@ Run modules directly, for example:
 python3 -m scripts.data.fetch_stooq_ohlc --interval all
 python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily
 python3 -m scripts.reports.recent_momentum_report
+python3 -m scripts.operations.daily_run --label daily
 ```
 
 Maintenance helpers:

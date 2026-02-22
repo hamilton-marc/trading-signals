@@ -18,6 +18,11 @@ This is intentionally **not** a fully automated trading system.
 
 ## Daily Workflow (EOD)
 
+### Optional: Single-command runner
+```bash
+python3 -m scripts.operations.daily_run --label daily --fetch-interval all
+```
+
 ### Step 1: Refresh data
 ```bash
 python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
