@@ -8,6 +8,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.paths import INDICATORS_MOMENTUM_TV_MATCH_DIR, REPORTS_MOMENTUM_DIR
+
 
 @dataclass
 class RankedSymbol:
@@ -40,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input-dir",
-        default="out/indicators/momentum_tv_match/daily",
+        default=str(INDICATORS_MOMENTUM_TV_MATCH_DIR / "daily"),
         help="Directory with momentum tv-match CSV files",
     )
     parser.add_argument("--symbols", default="", help="Optional comma-separated symbol override")
@@ -81,12 +83,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--out-csv",
-        default="out/reports/momentum/recent_momentum_buys_5d.csv",
+        default=str(REPORTS_MOMENTUM_DIR / "recent_momentum_buys_5d.csv"),
         help="CSV output path",
     )
     parser.add_argument(
         "--out-md",
-        default="out/reports/momentum/recent_momentum_buys_5d.md",
+        default=str(REPORTS_MOMENTUM_DIR / "recent_momentum_buys_5d.md"),
         help="Markdown output path",
     )
     return parser.parse_args()

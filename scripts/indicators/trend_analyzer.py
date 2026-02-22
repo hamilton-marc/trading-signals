@@ -8,6 +8,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.paths import INDICATORS_EMA_DIR, INDICATORS_TREND_DIR, META_ERRORS_DIR, META_LATEST_DIR
+
 
 @dataclass
 class SymbolResult:
@@ -27,22 +29,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
     parser.add_argument(
         "--input-dir",
-        default="out/indicators/ema",
+        default=str(INDICATORS_EMA_DIR),
         help="Directory with per-symbol indicator CSV files",
     )
     parser.add_argument(
         "--out-dir",
-        default="out/indicators/trend",
+        default=str(INDICATORS_TREND_DIR),
         help="Directory for per-symbol trend analysis CSV files",
     )
     parser.add_argument(
         "--latest-file",
-        default="out/_meta/latest/trend_latest.csv",
+        default=str(META_LATEST_DIR / "trend_latest.csv"),
         help="CSV file path for latest trend per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/_meta/errors/trend_errors.csv",
+        default=str(META_ERRORS_DIR / "trend_errors.csv"),
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--fast-period", type=int, default=50, help="Fast EMA period")

@@ -145,6 +145,13 @@ Migration recommendation:
 3. Migrated existing `out/` artifacts into v2 namespaces.
 4. Updated docs and notebook path references to v2 defaults.
 5. Ran smoke checks on core modules.
+6. Added `scripts.maintenance.verify_out_layout` for repeatable layout checks.
+
+## Next Phase (Deprecation)
+
+1. Run `python3 -m scripts.maintenance.verify_out_layout` after each EOD workflow.
+2. After stable runs, remove legacy compatibility symlinks under `out/`.
+3. Use `python3 -m scripts.maintenance.verify_out_layout --fail-on-legacy` as the stricter check.
 
 ## Acceptance Criteria
 

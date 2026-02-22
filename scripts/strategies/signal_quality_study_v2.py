@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.paths import STRATEGIES_MTF_V2_DIR, STRATEGIES_SIGNAL_QUALITY_V2_DIR
+
 
 @dataclass
 class StudyConfig:
@@ -31,8 +33,8 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Comma-separated symbols; if omitted, read from watchlist",
     )
-    parser.add_argument("--input-dir", default="out/strategies/mtf_entry_exit_v2", help="Directory with per-symbol strategy CSVs")
-    parser.add_argument("--out-dir", default="out/strategies/signal_quality_v2", help="Output directory")
+    parser.add_argument("--input-dir", default=str(STRATEGIES_MTF_V2_DIR), help="Directory with per-symbol strategy CSVs")
+    parser.add_argument("--out-dir", default=str(STRATEGIES_SIGNAL_QUALITY_V2_DIR), help="Output directory")
     parser.add_argument(
         "--event-mode",
         choices=["trigger_edge_flat", "trigger_edge_all", "entry_setup_edge"],

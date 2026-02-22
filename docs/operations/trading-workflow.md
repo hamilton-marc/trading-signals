@@ -35,6 +35,7 @@ python3 -m scripts.reports.recent_momentum_report
 ### Optional: Tidy output metadata
 ```bash
 python3 -m scripts.maintenance.tidy_out
+python3 -m scripts.maintenance.verify_out_layout
 ```
 
 ### Step 3: Review new long opportunities

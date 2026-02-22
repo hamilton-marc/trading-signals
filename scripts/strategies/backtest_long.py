@@ -9,6 +9,8 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.paths import BACKTESTS_LONG_ONLY_DIR, INDICATORS_TREND_DIR, SIGNALS_ENGINE_DIR
+
 
 @dataclass
 class Trade:
@@ -27,9 +29,9 @@ class Trade:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--symbol", default="APO", help="Symbol to backtest (default: APO)")
-    parser.add_argument("--signals-dir", default="out/signals/engine", help="Directory with signal CSV files")
-    parser.add_argument("--trend-dir", default="out/indicators/trend", help="Directory with trend CSV files")
-    parser.add_argument("--out-dir", default="out/backtests/long_only", help="Directory for backtest outputs")
+    parser.add_argument("--signals-dir", default=str(SIGNALS_ENGINE_DIR), help="Directory with signal CSV files")
+    parser.add_argument("--trend-dir", default=str(INDICATORS_TREND_DIR), help="Directory with trend CSV files")
+    parser.add_argument("--out-dir", default=str(BACKTESTS_LONG_ONLY_DIR), help="Directory for backtest outputs")
     parser.add_argument("--initial-capital", type=float, default=100000.0, help="Starting cash")
     parser.add_argument(
         "--allocation-pct",

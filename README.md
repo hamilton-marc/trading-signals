@@ -88,6 +88,7 @@ To declutter root-level files in `out/` after experiments:
 
 ```bash
 python3 -m scripts.maintenance.tidy_out
+python3 -m scripts.maintenance.verify_out_layout
 ```
 
 This moves top-level metadata files into:

@@ -14,6 +14,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus
 from urllib.request import urlopen
 
+from scripts.paths import data_dir_for_interval, stooq_errors_file
+
 STOOQ_URL_TEMPLATE = "https://stooq.com/q/d/l/?s={symbol}&i={interval}"
 CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
 
@@ -118,22 +120,12 @@ def resolve_output_paths(
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
-        if interval == "d":
-            out_dir = Path("out/data/daily")
-        elif interval == "w":
-            out_dir = Path("out/data/weekly")
-        else:
-            out_dir = Path("out/data/monthly")
+        out_dir = data_dir_for_interval(interval)
 
     if errors_file_arg:
         errors_path = Path(errors_file_arg)
     else:
-        if interval == "d":
-            errors_path = Path("out/_meta/errors/stooq_daily_errors.csv")
-        elif interval == "w":
-            errors_path = Path("out/_meta/errors/stooq_weekly_errors.csv")
-        else:
-            errors_path = Path("out/_meta/errors/stooq_monthly_errors.csv")
+        errors_path = stooq_errors_file(interval)
 
     return out_dir, errors_path
 

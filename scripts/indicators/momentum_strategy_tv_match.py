@@ -9,6 +9,15 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from scripts.paths import (
+    DATA_DAILY_DIR,
+    DATA_MONTHLY_DIR,
+    DATA_WEEKLY_DIR,
+    momentum_tv_match_errors_file,
+    momentum_tv_match_latest_file,
+    momentum_tv_match_output_dir,
+)
+
 
 @dataclass
 class SymbolResult:
@@ -74,26 +83,26 @@ def resolve_paths(
         input_dir = Path(input_dir_arg)
     else:
         default_inputs = {
-            "daily": Path("out/data/daily"),
-            "weekly": Path("out/data/weekly"),
-            "monthly": Path("out/data/monthly"),
+            "daily": DATA_DAILY_DIR,
+            "weekly": DATA_WEEKLY_DIR,
+            "monthly": DATA_MONTHLY_DIR,
         }
         input_dir = default_inputs[timeframe]
 
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
-        out_dir = Path(f"out/indicators/momentum_tv_match/{timeframe}")
+        out_dir = momentum_tv_match_output_dir(timeframe)
 
     if latest_file_arg:
         latest_file = Path(latest_file_arg)
     else:
-        latest_file = Path(f"out/_meta/latest/momentum_tv_match_{timeframe}_latest.csv")
+        latest_file = momentum_tv_match_latest_file(timeframe)
 
     if errors_file_arg:
         errors_file = Path(errors_file_arg)
     else:
-        errors_file = Path(f"out/_meta/errors/momentum_tv_match_{timeframe}_errors.csv")
+        errors_file = momentum_tv_match_errors_file(timeframe)
 
     return input_dir, out_dir, latest_file, errors_file
 

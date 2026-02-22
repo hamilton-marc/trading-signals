@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from scripts.paths import DATA_DAILY_DIR, STRATEGIES_HARDENING_DIR
+
 
 @dataclass
 class RunMetrics:
@@ -38,13 +40,13 @@ class Segment:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--symbol", default="APO", help="Symbol to validate (default: APO)")
-    parser.add_argument("--input-file", default="out/data/daily/APO.csv", help="Daily source CSV file")
+    parser.add_argument("--input-file", default=str(DATA_DAILY_DIR / "APO.csv"), help="Daily source CSV file")
     parser.add_argument(
         "--strategy-script",
         default="scripts/strategies/mtf_entry_exit_v1.py",
         help="Path to strategy script",
     )
-    parser.add_argument("--out-dir", default="out/strategies/hardening", help="Directory for hardening artifacts")
+    parser.add_argument("--out-dir", default=str(STRATEGIES_HARDENING_DIR), help="Directory for hardening artifacts")
     parser.add_argument(
         "--min-segment-bars",
         type=int,

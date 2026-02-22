@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.paths import DATA_DAILY_DIR, DATA_MONTHLY_DIR, DATA_WEEKLY_DIR, STRATEGIES_ENTRY_TIER_DIR
+
 
 @dataclass
 class Policy:
@@ -64,11 +66,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist")
     parser.add_argument("--symbols", default="", help="Optional comma-separated symbols override")
-    parser.add_argument("--daily-input-dir", default="out/data/daily")
-    parser.add_argument("--weekly-input-dir", default="out/data/weekly")
-    parser.add_argument("--monthly-input-dir", default="out/data/monthly")
+    parser.add_argument("--daily-input-dir", default=str(DATA_DAILY_DIR))
+    parser.add_argument("--weekly-input-dir", default=str(DATA_WEEKLY_DIR))
+    parser.add_argument("--monthly-input-dir", default=str(DATA_MONTHLY_DIR))
     parser.add_argument("--allow-derived-fallback", action="store_true")
-    parser.add_argument("--out-dir", default="out/strategies/entry_tier_experiment")
+    parser.add_argument("--out-dir", default=str(STRATEGIES_ENTRY_TIER_DIR))
     parser.add_argument("--date-from", default="2023-01-03", help="Inclusive YYYY-MM-DD")
     parser.add_argument("--date-to", default="", help="Inclusive YYYY-MM-DD")
     parser.add_argument("--initial-capital", type=float, default=100000.0)

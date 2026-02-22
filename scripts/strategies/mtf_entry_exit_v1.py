@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from scripts.paths import DATA_DAILY_DIR, DATA_MONTHLY_DIR, DATA_WEEKLY_DIR, META_ERRORS_DIR, META_LATEST_DIR, META_SUMMARIES_DIR, STRATEGIES_MTF_V1_DIR
+
 
 @dataclass
 class StrategyConfig:
@@ -53,31 +55,31 @@ class SymbolSummary:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--input-dir", default="out/data/daily", help="Directory with daily OHLC CSV files")
+    parser.add_argument("--input-dir", default=str(DATA_DAILY_DIR), help="Directory with daily OHLC CSV files")
     parser.add_argument(
         "--weekly-input-dir",
-        default="out/data/weekly",
+        default=str(DATA_WEEKLY_DIR),
         help="Directory with weekly OHLC CSV files (falls back to daily aggregation if missing)",
     )
     parser.add_argument(
         "--monthly-input-dir",
-        default="out/data/monthly",
+        default=str(DATA_MONTHLY_DIR),
         help="Directory with monthly OHLC CSV files (falls back to daily aggregation if missing)",
     )
-    parser.add_argument("--out-dir", default="out/strategies/mtf_entry_exit_v1", help="Directory for per-symbol output CSVs")
+    parser.add_argument("--out-dir", default=str(STRATEGIES_MTF_V1_DIR), help="Directory for per-symbol output CSVs")
     parser.add_argument(
         "--latest-file",
-        default="out/_meta/latest/mtf_entry_exit_v1_latest.csv",
+        default=str(META_LATEST_DIR / "mtf_entry_exit_v1_latest.csv"),
         help="CSV path for latest strategy status per symbol",
     )
     parser.add_argument(
         "--summary-file",
-        default="out/_meta/summaries/mtf_entry_exit_v1_summary.csv",
+        default=str(META_SUMMARIES_DIR / "mtf_entry_exit_v1_summary.csv"),
         help="CSV path for summary metrics per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/_meta/errors/mtf_entry_exit_v1_errors.csv",
+        default=str(META_ERRORS_DIR / "mtf_entry_exit_v1_errors.csv"),
         help="CSV path for per-symbol failures",
     )
     parser.add_argument("--daily-ema-period", type=int, default=50, help="Daily EMA period for trigger and trend-failure exit")

@@ -8,6 +8,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.paths import DATA_DAILY_DIR, INDICATORS_MOMENTUM_DIR, META_ERRORS_DIR, META_LATEST_DIR
+
 
 @dataclass
 class SymbolResult:
@@ -25,16 +27,16 @@ class SymbolError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--input-dir", default="out/data/daily", help="Directory with source OHLC CSV files")
-    parser.add_argument("--out-dir", default="out/indicators/momentum", help="Directory for momentum CSV output")
+    parser.add_argument("--input-dir", default=str(DATA_DAILY_DIR), help="Directory with source OHLC CSV files")
+    parser.add_argument("--out-dir", default=str(INDICATORS_MOMENTUM_DIR), help="Directory for momentum CSV output")
     parser.add_argument(
         "--latest-file",
-        default="out/_meta/latest/momentum_latest.csv",
+        default=str(META_LATEST_DIR / "momentum_latest.csv"),
         help="CSV file path for latest momentum signal per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/_meta/errors/momentum_errors.csv",
+        default=str(META_ERRORS_DIR / "momentum_errors.csv"),
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--length", type=int, default=24, help="Momentum length (default: 24)")

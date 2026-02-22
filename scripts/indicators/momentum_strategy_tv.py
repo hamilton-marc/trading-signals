@@ -9,6 +9,14 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from scripts.paths import (
+    DATA_DAILY_DIR,
+    DATA_MONTHLY_DIR,
+    momentum_tv_errors_file,
+    momentum_tv_latest_file,
+    momentum_tv_output_dir,
+)
+
 
 @dataclass
 class SymbolResult:
@@ -166,37 +174,22 @@ def resolve_paths(
     if input_dir_arg:
         input_dir = Path(input_dir_arg)
     else:
-        input_dir = Path("out/data/monthly" if timeframe == "monthly" else "out/data/daily")
+        input_dir = DATA_MONTHLY_DIR if timeframe == "monthly" else DATA_DAILY_DIR
 
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
-        if timeframe == "daily":
-            out_dir = Path("out/indicators/momentum_tv/daily")
-        elif timeframe == "weekly":
-            out_dir = Path("out/indicators/momentum_tv/weekly")
-        else:
-            out_dir = Path("out/indicators/momentum_tv/monthly")
+        out_dir = momentum_tv_output_dir(timeframe)
 
     if latest_file_arg:
         latest_file = Path(latest_file_arg)
     else:
-        if timeframe == "daily":
-            latest_file = Path("out/_meta/latest/momentum_tv_daily_latest.csv")
-        elif timeframe == "weekly":
-            latest_file = Path("out/_meta/latest/momentum_tv_weekly_latest.csv")
-        else:
-            latest_file = Path("out/_meta/latest/momentum_tv_monthly_latest.csv")
+        latest_file = momentum_tv_latest_file(timeframe)
 
     if errors_file_arg:
         errors_file = Path(errors_file_arg)
     else:
-        if timeframe == "daily":
-            errors_file = Path("out/_meta/errors/momentum_tv_daily_errors.csv")
-        elif timeframe == "weekly":
-            errors_file = Path("out/_meta/errors/momentum_tv_weekly_errors.csv")
-        else:
-            errors_file = Path("out/_meta/errors/momentum_tv_monthly_errors.csv")
+        errors_file = momentum_tv_errors_file(timeframe)
 
     return input_dir, out_dir, latest_file, errors_file
 

@@ -8,6 +8,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.paths import DATA_DAILY_DIR, INDICATORS_EMA_DIR, META_ERRORS_DIR
+
 
 @dataclass
 class SymbolResult:
@@ -25,11 +27,11 @@ class SymbolError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--input-dir", default="out/data/daily", help="Directory with source OHLC CSV files")
-    parser.add_argument("--out-dir", default="out/indicators/ema", help="Directory for indicator CSV output")
+    parser.add_argument("--input-dir", default=str(DATA_DAILY_DIR), help="Directory with source OHLC CSV files")
+    parser.add_argument("--out-dir", default=str(INDICATORS_EMA_DIR), help="Directory for indicator CSV output")
     parser.add_argument(
         "--errors-file",
-        default="out/_meta/errors/compute_ema_errors.csv",
+        default=str(META_ERRORS_DIR / "compute_ema_errors.csv"),
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--period", type=int, default=200, help="Single EMA period (default behavior)")
