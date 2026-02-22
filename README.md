@@ -82,6 +82,20 @@ For any script/module options, run:
 python3 -m scripts.<group>.<script> --help
 ```
 
+## Out Folder Housekeeping
+
+To declutter root-level files in `out/` after experiments:
+
+```bash
+python3 -m scripts.maintenance.tidy_out
+```
+
+This moves top-level metadata files into:
+- `out/_meta/errors/`
+- `out/_meta/latest/`
+- `out/_meta/summaries/`
+- `out/_meta/watchlists/`
+
 ## Core Commands
 
 ### Data Fetch (Stooq)
@@ -231,6 +245,5 @@ Main notebooks currently used:
 
 - `watchlist.txt` is the primary symbol input.
 - `out/` is for generated artifacts and is ignored by Git.
-- `data/` currently stores archived/local reference datasets.
 - Operational runbook: `docs/operations/trading-workflow.md`
 - Files under `docs/milestones/` are historical snapshots and may include legacy command examples.

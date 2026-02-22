@@ -38,6 +38,17 @@ Details may change as we learn.
 
 ---
 
+## Git Workflow
+
+- Bias toward small, frequent commits at meaningful checkpoints.
+- Commit when a unit of work is complete and verifiable, even if the overall initiative is still in progress.
+- For major new features or initiatives:
+  - Push the current feature branch.
+  - Merge it into `main`.
+  - Start a new branch from updated `main` before beginning the new initiative.
+
+---
+
 ## Technology Preferences
 
 - Python 3.10+

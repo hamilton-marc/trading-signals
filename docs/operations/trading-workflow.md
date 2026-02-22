@@ -14,7 +14,7 @@ This is intentionally **not** a fully automated trading system.
 
 ## Inputs
 - Watchlist: `watchlist.txt`
-- (Planned) current holdings list: `data/positions/current_positions.csv`
+- (Planned) current holdings list: `positions/current_positions.csv`
 
 ## Daily Workflow (EOD)
 
@@ -30,6 +30,11 @@ python3 -m scripts.indicators.trend_analyzer --buffer-pct 0.5 --confirm-bars 3
 python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily --length 24 --min-tick 0.01
 python3 -m scripts.signals.signal_engine --min-hold-bars 5
 python3 -m scripts.reports.recent_momentum_report
+```
+
+### Optional: Tidy output metadata
+```bash
+python3 -m scripts.maintenance.tidy_out
 ```
 
 ### Step 3: Review new long opportunities
