@@ -1,5 +1,27 @@
 # Hypothesis: 2026-02-17 - Tiered Entry Gating With Disciplined Exits
 
+## Status
+- Evaluated: `2026-02-17`
+- State: `Closed`
+- Result summary source: `docs/milestones/2026-02-17-entry-tier-experiment-results.md`
+
+## Verdict
+`Partially supported` (and adopted as a working candidate):
+- Tiered entry (`tiered_candidate_25_early_50`) improved entry timing/recall in focal windows.
+- Risk profile stayed close to baseline on tested symbols, unlike full relaxation.
+- Full weekly-only relaxation increased drawdown on TSLA and was treated as too aggressive.
+
+## Evidence Snapshot
+From `out/entry_tier_experiment/summary.csv` (window `2023-01-03` to `2026-02-13`, symbols `APO`, `TSLA`, `MSFT`):
+- APO: baseline `+67.91%` vs tiered `+70.68%` (max DD both `12.37%`)
+- TSLA: baseline `+36.70%` vs tiered `+38.13%` (max DD `21.45%` vs `21.44%`)
+- MSFT: baseline `+18.54%` vs tiered `+20.83%` (max DD `16.88%` in both cases)
+
+## Follow-up Decision
+- Keep disciplined exits unchanged.
+- Use `tiered_candidate_25_early_50` as the next iteration candidate.
+- Keep `relaxed_weekly_full` as an upper-bound capture reference, not default execution mode.
+
 ## Context
 Current v2 behavior shows disciplined exits and generally stable risk control, but entry timing can miss early portions of strong trend legs.
 
