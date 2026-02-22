@@ -143,8 +143,8 @@ celerybeat.pid
 .env
 .envrc
 .venv
-data/
-out/
+/data/
+/out/
 env/
 venv/
 ENV/

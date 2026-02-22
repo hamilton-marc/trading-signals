@@ -18,7 +18,7 @@ python3 -m scripts.data.fetch_stooq_ohlc
 Examples:
 
 ```bash
-python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 0.4
+python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
 python3 -m scripts.data.fetch_stooq_ohlc --interval d --start-date 2024-01-01
 python3 -m scripts.data.fetch_stooq_ohlc --dry-run
 ```
