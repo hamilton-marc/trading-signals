@@ -4,7 +4,7 @@
 This currently runs the active signal engine implementation from signal_engine.py.
 """
 
-from signal_engine import main
+from scripts.signals.signal_engine import main
 
 
 if __name__ == "__main__":

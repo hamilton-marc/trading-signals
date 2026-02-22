@@ -13,17 +13,17 @@ Key outcomes:
 ## What Was Built
 
 ### Data Fetching
-- `fetch_stooq_ohlc.py`
+- `scripts.data.fetch_stooq_ohlc`
   - Added interval support (`daily` and `monthly`) via Stooq `i=d|m`.
   - Monthly outputs now supported in `out/monthly/`.
 
 ### Trend + Signal Workflow
-- `signal_engine.py`
+- `scripts.signals.signal_engine`
   - Added monthly regime integration and later simplified gating behavior.
   - Added EMA-cross long trigger support (Close crossing above configurable EMA, default `EMA_50`).
 
 ### TradingView-Style Momentum
-- New script: `momentum_strategy_tv.py`
+- New script: `scripts.indicators.momentum_strategy_tv`
   - Replicates Pine logic:
     - `MOM0 = Close - Close[length]`
     - `MOM1 = MOM0 - MOM0[1]`
@@ -44,7 +44,7 @@ Key outcomes:
   - Timeframe switch in notebook (`daily|weekly|monthly`).
 
 ## Key Decisions
-- Keep momentum TV implementation separate (`momentum_strategy_tv.py`) from existing momentum engine (`momentum_strategy.py`) to avoid regression risk.
+- Keep momentum TV implementation separate (`scripts.indicators.momentum_strategy_tv`) from existing momentum engine (`scripts.indicators.momentum_strategy`) to avoid regression risk.
 - Keep timeframe analysis as output-level exploration before deeper strategy engine integration.
 - Treat monthly/weekly as first-class analysis options while preserving daily compatibility.
 
@@ -52,21 +52,21 @@ Key outcomes:
 
 ### Fetch data
 ```bash
-python3 fetch_stooq_ohlc.py
-python3 fetch_stooq_ohlc.py --interval m
+python3 -m scripts.data.fetch_stooq_ohlc
+python3 -m scripts.data.fetch_stooq_ohlc --interval m
 ```
 
 ### TradingView-style momentum
 ```bash
-python3 momentum_strategy_tv.py --timeframe daily
-python3 momentum_strategy_tv.py --timeframe weekly
-python3 momentum_strategy_tv.py --timeframe monthly
+python3 -m scripts.indicators.momentum_strategy_tv --timeframe daily
+python3 -m scripts.indicators.momentum_strategy_tv --timeframe weekly
+python3 -m scripts.indicators.momentum_strategy_tv --timeframe monthly
 ```
 
 ### Existing momentum/signal pipeline (legacy + current)
 ```bash
-python3 momentum_strategy.py --length 24
-python3 signal_engine.py --min-hold-bars 5
+python3 -m scripts.indicators.momentum_strategy --length 24
+python3 -m scripts.signals.signal_engine --min-hold-bars 5
 ```
 
 ## Validation Results (at milestone)
