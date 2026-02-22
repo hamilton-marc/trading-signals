@@ -499,7 +499,8 @@ def main() -> int:
                 monthly_path = monthly_dir / f"{symbol}.csv"
                 if not monthly_path.exists():
                     raise FileNotFoundError(
-                        f"Monthly CSV not found: {monthly_path}. Run: python3 fetch_stooq_ohlc.py --interval m"
+                        f"Monthly CSV not found: {monthly_path}. Run: "
+                        "python3 -m scripts.data.fetch_stooq_ohlc --interval m"
                     )
                 monthly_rows = read_rows(monthly_path)
                 monthly_regime_points = build_monthly_regime_points(

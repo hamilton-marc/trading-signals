@@ -13,4 +13,10 @@ Implementation modules are organized by responsibility:
 - `reports/`
   - ranked shortlist and report builders
 
-Root-level `*.py` files in the repository are compatibility wrappers that call into these modules.
+Run modules directly, for example:
+
+```bash
+python3 -m scripts.data.fetch_stooq_ohlc --interval all
+python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily
+python3 -m scripts.reports.recent_momentum_report
+```
