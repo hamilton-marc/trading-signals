@@ -166,37 +166,37 @@ def resolve_paths(
     if input_dir_arg:
         input_dir = Path(input_dir_arg)
     else:
-        input_dir = Path("out/monthly" if timeframe == "monthly" else "out/daily")
+        input_dir = Path("out/data/monthly" if timeframe == "monthly" else "out/data/daily")
 
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
         if timeframe == "daily":
-            out_dir = Path("out/momentum_tv")
+            out_dir = Path("out/indicators/momentum_tv/daily")
         elif timeframe == "weekly":
-            out_dir = Path("out/momentum_tv_weekly")
+            out_dir = Path("out/indicators/momentum_tv/weekly")
         else:
-            out_dir = Path("out/momentum_tv_monthly")
+            out_dir = Path("out/indicators/momentum_tv/monthly")
 
     if latest_file_arg:
         latest_file = Path(latest_file_arg)
     else:
         if timeframe == "daily":
-            latest_file = Path("out/momentum_tv_latest.csv")
+            latest_file = Path("out/_meta/latest/momentum_tv_daily_latest.csv")
         elif timeframe == "weekly":
-            latest_file = Path("out/momentum_tv_weekly_latest.csv")
+            latest_file = Path("out/_meta/latest/momentum_tv_weekly_latest.csv")
         else:
-            latest_file = Path("out/momentum_tv_monthly_latest.csv")
+            latest_file = Path("out/_meta/latest/momentum_tv_monthly_latest.csv")
 
     if errors_file_arg:
         errors_file = Path(errors_file_arg)
     else:
         if timeframe == "daily":
-            errors_file = Path("out/momentum_tv_errors.csv")
+            errors_file = Path("out/_meta/errors/momentum_tv_daily_errors.csv")
         elif timeframe == "weekly":
-            errors_file = Path("out/momentum_tv_weekly_errors.csv")
+            errors_file = Path("out/_meta/errors/momentum_tv_weekly_errors.csv")
         else:
-            errors_file = Path("out/momentum_tv_monthly_errors.csv")
+            errors_file = Path("out/_meta/errors/momentum_tv_monthly_errors.csv")
 
     return input_dir, out_dir, latest_file, errors_file
 

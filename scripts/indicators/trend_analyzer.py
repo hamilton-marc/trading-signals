@@ -27,22 +27,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
     parser.add_argument(
         "--input-dir",
-        default="out/indicators",
+        default="out/indicators/ema",
         help="Directory with per-symbol indicator CSV files",
     )
     parser.add_argument(
         "--out-dir",
-        default="out/trend",
+        default="out/indicators/trend",
         help="Directory for per-symbol trend analysis CSV files",
     )
     parser.add_argument(
         "--latest-file",
-        default="out/trend_latest.csv",
+        default="out/_meta/latest/trend_latest.csv",
         help="CSV file path for latest trend per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/trend_errors.csv",
+        default="out/_meta/errors/trend_errors.csv",
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--fast-period", type=int, default=50, help="Fast EMA period")

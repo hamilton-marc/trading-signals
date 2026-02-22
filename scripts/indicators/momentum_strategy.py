@@ -25,16 +25,16 @@ class SymbolError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--input-dir", default="out/daily", help="Directory with source OHLC CSV files")
-    parser.add_argument("--out-dir", default="out/momentum", help="Directory for momentum CSV output")
+    parser.add_argument("--input-dir", default="out/data/daily", help="Directory with source OHLC CSV files")
+    parser.add_argument("--out-dir", default="out/indicators/momentum", help="Directory for momentum CSV output")
     parser.add_argument(
         "--latest-file",
-        default="out/momentum_latest.csv",
+        default="out/_meta/latest/momentum_latest.csv",
         help="CSV file path for latest momentum signal per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/momentum_errors.csv",
+        default="out/_meta/errors/momentum_errors.csv",
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--length", type=int, default=24, help="Momentum length (default: 24)")

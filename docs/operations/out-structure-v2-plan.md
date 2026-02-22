@@ -3,7 +3,7 @@
 ## Goal
 Define a cleaner `out/` structure that separates stable operational outputs from research/experiment artifacts, while avoiding breakage during migration.
 
-This document is planning-only for v2. It does not assume all paths are already migrated.
+This document now serves as the v2 migration record and reference.
 
 ## Target Structure (v2)
 
@@ -92,66 +92,36 @@ out/
 | top-level `*_summary.csv` | `out/_meta/summaries/*` | Already partially applied by `tidy_out` |
 | top-level watchlist txt files | `out/_meta/watchlists/*` | Already partially applied by `tidy_out` |
 
-## Script Impact (Default path updates required)
+## Script Impact (Applied)
 
-### Data
-- `scripts/data/fetch_stooq_ohlc.py`
-  - `out/daily`, `out/weekly`, `out/monthly`
-  - `out/stooq_errors.csv`, `out/stooq_weekly_errors.csv`, `out/stooq_monthly_errors.csv`
+All primary scripts now default to v2 paths:
 
-### Indicators
-- `scripts/indicators/compute_ema.py`
-  - `--input-dir` default `out/daily`
-  - `--out-dir` default `out/indicators`
-  - errors default `out/indicator_errors.csv`
-- `scripts/indicators/trend_analyzer.py`
-  - input default `out/indicators`
-  - out default `out/trend`
-  - latest/errors at top-level `out/`
-- `scripts/indicators/momentum_strategy.py`
-  - input default `out/daily`
-  - out default `out/momentum`
-  - latest/errors at top-level `out/`
-- `scripts/indicators/momentum_strategy_tv.py`
-  - data inputs default to `out/daily` and `out/monthly`
-  - out dirs `out/momentum_tv*`
-  - latest/errors at top-level `out/`
-- `scripts/indicators/momentum_strategy_tv_match.py`
-  - data inputs `out/daily`, `out/weekly`, `out/monthly`
-  - out dirs `out/momentum_tv_match_<timeframe>`
-  - latest/errors at top-level `out/`
+- Data fetch defaults:
+  - `out/data/daily`, `out/data/weekly`, `out/data/monthly`
+  - errors under `out/_meta/errors/`
+- Indicator defaults:
+  - EMA output in `out/indicators/ema`
+  - trend output in `out/indicators/trend`
+  - momentum output in `out/indicators/momentum`
+  - TradingView momentum outputs in:
+    - `out/indicators/momentum_tv/<timeframe>`
+    - `out/indicators/momentum_tv_match/<timeframe>`
+  - indicator latest/errors under `out/_meta/latest/` and `out/_meta/errors/`
+- Signal engine defaults:
+  - inputs from `out/indicators/*` and `out/data/monthly`
+  - output in `out/signals/engine`
+  - latest/errors in `out/_meta/`
+- Report defaults:
+  - recent momentum report input from `out/indicators/momentum_tv_match/daily`
+  - outputs under `out/reports/momentum/`
+- Strategy defaults:
+  - long-only backtests in `out/backtests/long_only`
+  - tv-match backtests in `out/backtests/tv_match`
+  - MTF/entry/signal-quality/hardening outputs under `out/strategies/*`
+- Maintenance:
+  - `scripts/maintenance/tidy_out.py` remains valid for top-level metadata cleanup.
 
-### Signals
-- `scripts/signals/signal_engine.py`
-  - trend `out/trend`, momentum `out/momentum`, monthly `out/monthly`
-  - out dir `out/signals`
-  - latest/errors at top-level `out/`
-
-### Reports
-- `scripts/reports/recent_momentum_report.py`
-  - input dir `out/momentum_tv_match_daily`
-  - output files under `out/reports/`
-
-### Strategies
-- `scripts/strategies/backtest_long.py`
-  - signals `out/signals`, trend `out/trend`, out `out/backtests`
-- `scripts/strategies/mtf_entry_exit_v1.py`
-  - daily/weekly/monthly input defaults in `out/`
-  - outputs and latest/summary/errors under top-level `out/`
-- `scripts/strategies/mtf_entry_exit_v2.py`
-  - daily/weekly/monthly input defaults in `out/`
-  - outputs and latest/summary/errors under top-level `out/`
-- `scripts/strategies/entry_tier_experiment.py`
-  - daily/weekly/monthly inputs + out dir under top-level `out/`
-- `scripts/strategies/signal_quality_study_v2.py`
-  - input `out/mtf_entry_exit_v2`, output `out/signal_quality_v2`
-- `scripts/strategies/mtf_v1_hardening.py`
-  - input file default `out/daily/APO.csv`
-  - out dir default `out/hardening`
-
-### Maintenance
-- `scripts/maintenance/tidy_out.py`
-  - should remain valid for top-level metadata files in any future layout
+Compatibility symlinks were added for legacy high-traffic paths (`out/daily`, `out/monthly`, `out/trend`, etc.) during migration.
 
 ## Notebook Impact
 
@@ -168,17 +138,13 @@ Migration recommendation:
 - derive all paths from that root and new v2 subpaths
 - avoid embedding absolute paths in notebook outputs
 
-## No-Break Migration Sequence
+## Migration Sequence (Executed)
 
-1. Add a shared path module (`scripts/paths.py`) with v2 defaults and helper builders.
-2. Update scripts to accept v2 defaults while still allowing CLI override to old paths.
-3. Add compatibility symlinks or fallback logic for critical reads during transition.
-4. Migrate data directories first: `daily/weekly/monthly`.
-5. Migrate indicator outputs next (`ema`, `trend`, `momentum`, `momentum_tv*`).
-6. Migrate signals/reports/backtests.
-7. Migrate strategy and experiment trees.
-8. Update notebooks to v2 path config cells.
-9. Remove old path fallbacks only after at least one full EOD run succeeds.
+1. Updated script defaults to v2 path layout while retaining CLI overrides.
+2. Added compatibility symlinks for legacy path continuity.
+3. Migrated existing `out/` artifacts into v2 namespaces.
+4. Updated docs and notebook path references to v2 defaults.
+5. Ran smoke checks on core modules.
 
 ## Acceptance Criteria
 

@@ -25,22 +25,22 @@ class SymbolError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--trend-dir", default="out/trend", help="Directory with trend CSV files")
-    parser.add_argument("--momentum-dir", default="out/momentum", help="Directory with momentum CSV files")
+    parser.add_argument("--trend-dir", default="out/indicators/trend", help="Directory with trend CSV files")
+    parser.add_argument("--momentum-dir", default="out/indicators/momentum", help="Directory with momentum CSV files")
     parser.add_argument(
         "--monthly-dir",
-        default="out/monthly",
+        default="out/data/monthly",
         help="Directory with per-symbol monthly OHLC CSV files (from fetch_stooq_ohlc.py --interval m)",
     )
-    parser.add_argument("--out-dir", default="out/signals", help="Directory for per-symbol signal CSV files")
+    parser.add_argument("--out-dir", default="out/signals/engine", help="Directory for per-symbol signal CSV files")
     parser.add_argument(
         "--latest-file",
-        default="out/signal_latest.csv",
+        default="out/_meta/latest/signal_engine_latest.csv",
         help="CSV file path for latest signal state per symbol",
     )
     parser.add_argument(
         "--errors-file",
-        default="out/signal_errors.csv",
+        default="out/_meta/errors/signal_engine_errors.csv",
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument(

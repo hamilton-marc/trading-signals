@@ -24,11 +24,11 @@ python3 -m scripts.data.fetch_stooq_ohlc --dry-run
 ```
 
 ## Output Paths
-- Daily: `out/daily/<SYMBOL>.csv`
-- Weekly: `out/weekly/<SYMBOL>.csv`
-- Monthly: `out/monthly/<SYMBOL>.csv`
+- Daily: `out/data/daily/<SYMBOL>.csv`
+- Weekly: `out/data/weekly/<SYMBOL>.csv`
+- Monthly: `out/data/monthly/<SYMBOL>.csv`
 
-Errors are written to `out/` with timeframe-specific filenames.
+Errors are written to `out/_meta/errors/` with timeframe-specific filenames.
 
 ## Provider Request Shape
 The fetcher resolves Stooq download URLs in this form:

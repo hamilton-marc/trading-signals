@@ -52,8 +52,8 @@ python3 -m scripts.reports.recent_momentum_report
 - `notebooks/recent_signal_lab.ipynb`
 
 Generated shortlist artifacts:
-- `out/reports/recent_momentum_buys_5d.csv`
-- `out/reports/recent_momentum_buys_5d.md`
+- `out/reports/momentum/recent_momentum_buys_5d.csv`
+- `out/reports/momentum/recent_momentum_buys_5d.md`
 
 ## Notebook Usage
 
@@ -119,10 +119,10 @@ python3 -m scripts.data.fetch_stooq_ohlc --dry-run
 ```
 
 Writes:
-- `out/daily/<SYMBOL>.csv`
-- `out/weekly/<SYMBOL>.csv`
-- `out/monthly/<SYMBOL>.csv`
-- error files in `out/` (by timeframe)
+- `out/data/daily/<SYMBOL>.csv`
+- `out/data/weekly/<SYMBOL>.csv`
+- `out/data/monthly/<SYMBOL>.csv`
+- error files in `out/_meta/errors/` (by timeframe)
 
 ### Indicator Pipeline
 
@@ -162,9 +162,9 @@ python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily --len
 ```
 
 Strict model output:
-- per-symbol: `out/momentum_tv_match_<timeframe>/<SYMBOL>.csv`
-- latest summary: `out/momentum_tv_match_<timeframe>_latest.csv`
-- errors: `out/momentum_tv_match_<timeframe>_errors.csv`
+- per-symbol: `out/indicators/momentum_tv_match/<timeframe>/<SYMBOL>.csv`
+- latest summary: `out/_meta/latest/momentum_tv_match_<timeframe>_latest.csv`
+- errors: `out/_meta/errors/momentum_tv_match_<timeframe>_errors.csv`
 
 ### Ranked Recent-Signal Report
 
@@ -177,8 +177,8 @@ Default behavior:
 - ranks continuation quality using trend alignment, EMA slopes, ATR normalization, extension penalty, and freshness
 
 Writes:
-- `out/reports/recent_momentum_buys_5d.csv`
-- `out/reports/recent_momentum_buys_5d.md`
+- `out/reports/momentum/recent_momentum_buys_5d.csv`
+- `out/reports/momentum/recent_momentum_buys_5d.md`
 
 ### Signal Engine (v1)
 
@@ -189,8 +189,8 @@ python3 -m scripts.signals.signal_engine --min-hold-bars 5 --allow-neutral-trend
 ```
 
 Writes:
-- `out/signals/<SYMBOL>.csv`
-- `out/signal_latest.csv`
+- `out/signals/engine/<SYMBOL>.csv`
+- `out/_meta/latest/signal_engine_latest.csv`
 
 ### Long-Only Backtest
 
@@ -200,9 +200,9 @@ python3 -m scripts.strategies.backtest_long --symbol APO --min-atr-pct 2.0 --atr
 ```
 
 Writes:
-- `out/backtests/<SYMBOL>_trades.csv`
-- `out/backtests/<SYMBOL>_equity_curve.csv`
-- `out/backtests/<SYMBOL>_summary.csv`
+- `out/backtests/long_only/<SYMBOL>_trades.csv`
+- `out/backtests/long_only/<SYMBOL>_equity_curve.csv`
+- `out/backtests/long_only/<SYMBOL>_summary.csv`
 
 ## Advanced Strategy/Research Tools
 

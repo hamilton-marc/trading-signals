@@ -74,26 +74,26 @@ def resolve_paths(
         input_dir = Path(input_dir_arg)
     else:
         default_inputs = {
-            "daily": Path("out/daily"),
-            "weekly": Path("out/weekly"),
-            "monthly": Path("out/monthly"),
+            "daily": Path("out/data/daily"),
+            "weekly": Path("out/data/weekly"),
+            "monthly": Path("out/data/monthly"),
         }
         input_dir = default_inputs[timeframe]
 
     if out_dir_arg:
         out_dir = Path(out_dir_arg)
     else:
-        out_dir = Path(f"out/momentum_tv_match_{timeframe}")
+        out_dir = Path(f"out/indicators/momentum_tv_match/{timeframe}")
 
     if latest_file_arg:
         latest_file = Path(latest_file_arg)
     else:
-        latest_file = Path(f"out/momentum_tv_match_{timeframe}_latest.csv")
+        latest_file = Path(f"out/_meta/latest/momentum_tv_match_{timeframe}_latest.csv")
 
     if errors_file_arg:
         errors_file = Path(errors_file_arg)
     else:
-        errors_file = Path(f"out/momentum_tv_match_{timeframe}_errors.csv")
+        errors_file = Path(f"out/_meta/errors/momentum_tv_match_{timeframe}_errors.csv")
 
     return input_dir, out_dir, latest_file, errors_file
 

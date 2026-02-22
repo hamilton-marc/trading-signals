@@ -25,11 +25,11 @@ class SymbolError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
-    parser.add_argument("--input-dir", default="out/daily", help="Directory with source OHLC CSV files")
-    parser.add_argument("--out-dir", default="out/indicators", help="Directory for indicator CSV output")
+    parser.add_argument("--input-dir", default="out/data/daily", help="Directory with source OHLC CSV files")
+    parser.add_argument("--out-dir", default="out/indicators/ema", help="Directory for indicator CSV output")
     parser.add_argument(
         "--errors-file",
-        default="out/indicator_errors.csv",
+        default="out/_meta/errors/compute_ema_errors.csv",
         help="CSV file path for symbol-level errors",
     )
     parser.add_argument("--period", type=int, default=200, help="Single EMA period (default behavior)")

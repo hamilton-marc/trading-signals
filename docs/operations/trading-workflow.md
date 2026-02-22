@@ -39,8 +39,8 @@ python3 -m scripts.maintenance.tidy_out
 
 ### Step 3: Review new long opportunities
 Primary artifacts:
-- `out/reports/recent_momentum_buys_5d.md`
-- `out/reports/recent_momentum_buys_5d.csv`
+- `out/reports/momentum/recent_momentum_buys_5d.md`
+- `out/reports/momentum/recent_momentum_buys_5d.csv`
 - `notebooks/recent_signal_lab.ipynb`
 
 Decision focus:
@@ -50,8 +50,8 @@ Decision focus:
 
 ### Step 4: Review existing positions (exit management)
 Per-symbol artifacts:
-- `out/signals/<SYMBOL>.csv`
-- `out/trend/<SYMBOL>.csv`
+- `out/signals/engine/<SYMBOL>.csv`
+- `out/indicators/trend/<SYMBOL>.csv`
 
 Current practical exit triggers (any one):
 1. `SignalEvent = LONG_TO_SHORT`

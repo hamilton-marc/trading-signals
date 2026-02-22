@@ -45,7 +45,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Directory for per-symbol CSV output "
-            "(default: out/daily for d, out/weekly for w, out/monthly for m)"
+            "(default: out/data/daily for d, out/data/weekly for w, out/data/monthly for m)"
         ),
     )
     parser.add_argument(
@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "CSV file path for symbol-level errors "
-            "(default: out/stooq_errors.csv for d, out/stooq_weekly_errors.csv for w, out/stooq_monthly_errors.csv for m)"
+            "(default: out/_meta/errors/stooq_daily_errors.csv for d, out/_meta/errors/stooq_weekly_errors.csv for w, out/_meta/errors/stooq_monthly_errors.csv for m)"
         ),
     )
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
@@ -119,21 +119,21 @@ def resolve_output_paths(
         out_dir = Path(out_dir_arg)
     else:
         if interval == "d":
-            out_dir = Path("out/daily")
+            out_dir = Path("out/data/daily")
         elif interval == "w":
-            out_dir = Path("out/weekly")
+            out_dir = Path("out/data/weekly")
         else:
-            out_dir = Path("out/monthly")
+            out_dir = Path("out/data/monthly")
 
     if errors_file_arg:
         errors_path = Path(errors_file_arg)
     else:
         if interval == "d":
-            errors_path = Path("out/stooq_errors.csv")
+            errors_path = Path("out/_meta/errors/stooq_daily_errors.csv")
         elif interval == "w":
-            errors_path = Path("out/stooq_weekly_errors.csv")
+            errors_path = Path("out/_meta/errors/stooq_weekly_errors.csv")
         else:
-            errors_path = Path("out/stooq_monthly_errors.csv")
+            errors_path = Path("out/_meta/errors/stooq_monthly_errors.csv")
 
     return out_dir, errors_path
 

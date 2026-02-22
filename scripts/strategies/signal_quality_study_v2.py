@@ -31,8 +31,8 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Comma-separated symbols; if omitted, read from watchlist",
     )
-    parser.add_argument("--input-dir", default="out/mtf_entry_exit_v2", help="Directory with per-symbol strategy CSVs")
-    parser.add_argument("--out-dir", default="out/signal_quality_v2", help="Output directory")
+    parser.add_argument("--input-dir", default="out/strategies/mtf_entry_exit_v2", help="Directory with per-symbol strategy CSVs")
+    parser.add_argument("--out-dir", default="out/strategies/signal_quality_v2", help="Output directory")
     parser.add_argument(
         "--event-mode",
         choices=["trigger_edge_flat", "trigger_edge_all", "entry_setup_edge"],

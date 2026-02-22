@@ -27,9 +27,9 @@ class Trade:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--symbol", default="APO", help="Symbol to backtest (default: APO)")
-    parser.add_argument("--signals-dir", default="out/signals", help="Directory with signal CSV files")
-    parser.add_argument("--trend-dir", default="out/trend", help="Directory with trend CSV files")
-    parser.add_argument("--out-dir", default="out/backtests", help="Directory for backtest outputs")
+    parser.add_argument("--signals-dir", default="out/signals/engine", help="Directory with signal CSV files")
+    parser.add_argument("--trend-dir", default="out/indicators/trend", help="Directory with trend CSV files")
+    parser.add_argument("--out-dir", default="out/backtests/long_only", help="Directory for backtest outputs")
     parser.add_argument("--initial-capital", type=float, default=100000.0, help="Starting cash")
     parser.add_argument(
         "--allocation-pct",

@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input-dir",
-        default="out/momentum_tv_match_daily",
+        default="out/indicators/momentum_tv_match/daily",
         help="Directory with momentum tv-match CSV files",
     )
     parser.add_argument("--symbols", default="", help="Optional comma-separated symbol override")
@@ -81,12 +81,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--out-csv",
-        default="out/reports/recent_momentum_buys_5d.csv",
+        default="out/reports/momentum/recent_momentum_buys_5d.csv",
         help="CSV output path",
     )
     parser.add_argument(
         "--out-md",
-        default="out/reports/recent_momentum_buys_5d.md",
+        default="out/reports/momentum/recent_momentum_buys_5d.md",
         help="Markdown output path",
     )
     return parser.parse_args()
