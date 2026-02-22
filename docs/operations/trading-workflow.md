@@ -80,3 +80,5 @@ Current practical exit triggers (any one):
 Create a single daily brief generator that merges:
 1. New long candidates (watchlist scan).
 2. Hold/exit alerts (current positions).
+
+For planned output-layout migration, see: `docs/operations/out-structure-v2-plan.md`.
