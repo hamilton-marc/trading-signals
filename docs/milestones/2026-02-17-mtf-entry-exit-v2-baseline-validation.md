@@ -1,7 +1,7 @@
 # Milestone: 2026-02-17 - MTF Entry/Exit v2 Baseline Validation (APO + TSLA)
 
 ## Summary
-This milestone establishes `mtf_entry_exit_v2.py` as a new validated baseline.
+This milestone establishes `scripts.strategies.mtf_entry_exit_v2` as a new validated baseline.
 
 APO still behaves well overall, and v2 materially improves robustness on TSLA versus v1.
 
@@ -62,7 +62,7 @@ From `out/mtf_entry_exit_v2/APO.csv` and `out/mtf_entry_exit_v2/TSLA.csv`:
 ## Reproduce
 Run strategy:
 ```bash
-python3 mtf_entry_exit_v2.py
+python3 -m scripts.strategies.mtf_entry_exit_v2
 ```
 
 Visualize:

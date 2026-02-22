@@ -110,7 +110,7 @@ Exit (any one):
 ## Reproduce
 Run:
 ```bash
-python3 mtf_entry_exit_v1.py
+python3 -m scripts.strategies.mtf_entry_exit_v1
 ```
 
 Inspect:

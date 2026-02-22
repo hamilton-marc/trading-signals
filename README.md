@@ -86,6 +86,8 @@ python3 -m scripts.<group>.<script> --help
 
 ### Data Fetch (Stooq)
 
+See also: `docs/data-fetching.md` for a focused fetch reference.
+
 Default daily fetch:
 
 ```bash
