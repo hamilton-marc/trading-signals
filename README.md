@@ -232,4 +232,5 @@ Main notebooks currently used:
 - `watchlist.txt` is the primary symbol input.
 - `out/` is for generated artifacts and is ignored by Git.
 - `data/` currently stores archived/local reference datasets.
+- Operational runbook: `docs/operations/trading-workflow.md`
 - Files under `docs/milestones/` are historical snapshots and may include legacy command examples.
