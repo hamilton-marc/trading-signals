@@ -7,6 +7,9 @@ Define an operational workflow to use the current system day-to-day for:
 
 This is intentionally **not** a fully automated trading system.
 
+Related policy:
+- `docs/operations/trading-policy.md` (decision rules and signal hierarchy)
+
 ## Operating Model
 - Research and signal generation are automated.
 - Final trade decisions are human-reviewed.
@@ -33,8 +36,18 @@ python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
 python3 -m scripts.indicators.compute_ema --periods 50,200
 python3 -m scripts.indicators.trend_analyzer --buffer-pct 0.5 --confirm-bars 3
 python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily --length 24 --min-tick 0.01
+python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe weekly --length 24 --min-tick 0.01
 python3 -m scripts.signals.signal_engine --min-hold-bars 5
 python3 -m scripts.reports.recent_momentum_report
+python3 -m scripts.reports.recent_momentum_report \
+  --input-dir out/indicators/momentum_tv_match/weekly \
+  --window-bars 2 \
+  --out-csv out/reports/momentum/recent_momentum_buys_weekly_10d.csv \
+  --out-md out/reports/momentum/recent_momentum_buys_weekly_10d.md
+python3 -m scripts.reports.weekly_trend_watchlist_report \
+  --window-bars 2 \
+  --out-csv out/reports/momentum/weekly_trend_no_recent_momle_10d.csv \
+  --out-md out/reports/momentum/weekly_trend_no_recent_momle_10d.md
 ```
 
 ### Optional: Tidy output metadata
@@ -47,12 +60,32 @@ python3 -m scripts.maintenance.verify_out_layout
 Primary artifacts:
 - `out/reports/momentum/recent_momentum_buys_5d.md`
 - `out/reports/momentum/recent_momentum_buys_5d.csv`
+- `out/reports/momentum/recent_momentum_buys_weekly_10d.md`
+- `out/reports/momentum/recent_momentum_buys_weekly_10d.csv`
+- `out/reports/momentum/weekly_trend_no_recent_momle_10d.md`
+- `out/reports/momentum/weekly_trend_no_recent_momle_10d.csv`
 - `notebooks/recent_signal_lab.ipynb`
+- `notebooks/recent_signal_lab_weekly.ipynb`
+- `notebooks/weekly_trend_watchlist_lab.ipynb`
 
 Decision focus:
 - Rank/score from report.
 - Trend quality context from chart (EMA/trend alignment).
+- Continuation candidates where trend is strong but no fresh weekly `MomLE` appeared in last ~10 trading days.
 - Avoid low-quality setups in obvious downtrends unless explicitly trading reversals.
+
+## Signal Hierarchy (Current Default)
+Use timeframes with clear priority to reduce daily noise.
+
+1. Regime filter (direction): weekly and monthly context first.
+2. Opportunity screen (candidates): weekly `MomLE` in last 2 weekly bars (~10 trading days).
+3. Execution timing (optional refinement): daily chart only after symbol passes weekly screen.
+4. Risk/exit: capital-preservation exits always override new-entry logic.
+
+Practical interpretation:
+- If weekly/monthly context is weak, do not treat daily `MomLE` as an execution-grade long signal.
+- Use daily mostly for timing and risk management after higher timeframe alignment exists.
+- Ignore isolated daily opposite momentum flips when higher timeframe trend remains intact.
 
 ### Step 4: Review existing positions (exit management)
 Per-symbol artifacts:

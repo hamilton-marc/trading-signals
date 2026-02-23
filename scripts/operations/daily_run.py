@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
-from scripts.paths import META_LATEST_DIR, OUT_ROOT, REPORTS_MOMENTUM_DIR
+from scripts.paths import INDICATORS_MOMENTUM_TV_MATCH_DIR, META_LATEST_DIR, OUT_ROOT, REPORTS_MOMENTUM_DIR
 
 
 @dataclass
@@ -209,10 +209,15 @@ def copy_outputs(run_dir: Path) -> list[str]:
     candidates = [
         REPORTS_MOMENTUM_DIR / "recent_momentum_buys_5d.csv",
         REPORTS_MOMENTUM_DIR / "recent_momentum_buys_5d.md",
+        REPORTS_MOMENTUM_DIR / "recent_momentum_buys_weekly_10d.csv",
+        REPORTS_MOMENTUM_DIR / "recent_momentum_buys_weekly_10d.md",
+        REPORTS_MOMENTUM_DIR / "weekly_trend_no_recent_momle_10d.csv",
+        REPORTS_MOMENTUM_DIR / "weekly_trend_no_recent_momle_10d.md",
         META_LATEST_DIR / "signal_engine_latest.csv",
         META_LATEST_DIR / "trend_latest.csv",
         META_LATEST_DIR / "momentum_latest.csv",
         META_LATEST_DIR / "momentum_tv_match_daily_latest.csv",
+        META_LATEST_DIR / "momentum_tv_match_weekly_latest.csv",
     ]
     for source in candidates:
         if not source.exists():
@@ -338,7 +343,24 @@ def main() -> int:
                 True,
             ),
             (
-                "06_signal_engine",
+                "06_momentum_tv_match_weekly",
+                [
+                    py,
+                    "-m",
+                    "scripts.indicators.momentum_strategy_tv_match",
+                    "--watchlist",
+                    str(effective_watchlist),
+                    "--timeframe",
+                    "weekly",
+                    "--length",
+                    str(args.mom_length),
+                    "--min-tick",
+                    str(args.mom_min_tick),
+                ],
+                True,
+            ),
+            (
+                "07_signal_engine",
                 [
                     py,
                     "-m",
@@ -354,15 +376,44 @@ def main() -> int:
     )
 
     if not args.skip_report:
-        report_cmd = [py, "-m", "scripts.reports.recent_momentum_report"]
+        daily_report_cmd = [py, "-m", "scripts.reports.recent_momentum_report"]
+        weekly_report_cmd = [
+            py,
+            "-m",
+            "scripts.reports.recent_momentum_report",
+            "--input-dir",
+            str(INDICATORS_MOMENTUM_TV_MATCH_DIR / "weekly"),
+            "--window-bars",
+            "2",
+            "--out-csv",
+            str(REPORTS_MOMENTUM_DIR / "recent_momentum_buys_weekly_10d.csv"),
+            "--out-md",
+            str(REPORTS_MOMENTUM_DIR / "recent_momentum_buys_weekly_10d.md"),
+        ]
+        weekly_trend_cmd = [
+            py,
+            "-m",
+            "scripts.reports.weekly_trend_watchlist_report",
+            "--window-bars",
+            "2",
+            "--out-csv",
+            str(REPORTS_MOMENTUM_DIR / "weekly_trend_no_recent_momle_10d.csv"),
+            "--out-md",
+            str(REPORTS_MOMENTUM_DIR / "weekly_trend_no_recent_momle_10d.md"),
+        ]
         if symbols_override:
-            report_cmd.extend(["--symbols", ",".join(symbols_override)])
-        step_commands.append(("07_recent_report", report_cmd, True))
+            symbols_csv = ",".join(symbols_override)
+            daily_report_cmd.extend(["--symbols", symbols_csv])
+            weekly_report_cmd.extend(["--symbols", symbols_csv])
+            weekly_trend_cmd.extend(["--symbols", symbols_csv])
+        step_commands.append(("08_recent_report_daily", daily_report_cmd, True))
+        step_commands.append(("09_recent_report_weekly_10d", weekly_report_cmd, True))
+        step_commands.append(("10_weekly_trend_no_recent_momle", weekly_trend_cmd, True))
 
     if args.backtest_symbol.strip():
         step_commands.append(
             (
-                "08_backtest",
+                "11_backtest",
                 [
                     py,
                     "-m",
@@ -377,7 +428,7 @@ def main() -> int:
     if not args.skip_layout_check:
         step_commands.append(
             (
-                "09_verify_out_layout",
+                "12_verify_out_layout",
                 [py, "-m", "scripts.maintenance.verify_out_layout", "--fail-on-legacy"],
                 True,
             )
@@ -429,4 +480,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
