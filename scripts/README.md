@@ -25,6 +25,8 @@ python3 -m scripts.reports.weekly_trend_watchlist_report
 python3 -m scripts.operations.daily_run --label daily
 ```
 
+`fetch_stooq_ohlc --interval all` fetches daily from Stooq and derives weekly/monthly locally.
+
 Maintenance helpers:
 
 ```bash

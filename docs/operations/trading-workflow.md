@@ -30,6 +30,7 @@ python3 -m scripts.operations.daily_run --label daily --fetch-interval all
 ```bash
 python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 2.0 --delay-jitter-seconds 3.0
 ```
+This fetches `daily` from Stooq and derives `weekly`/`monthly` locally from daily data.
 
 ### Step 2: Refresh indicators and signals
 ```bash
