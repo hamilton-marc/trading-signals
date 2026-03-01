@@ -493,6 +493,10 @@ def main() -> int:
                         next_missing = existing_latest + timedelta(days=1)
                         effective_start = max(next_missing, start_date) if start_date else next_missing
                     effective_end = end_date
+                    if effective_start is not None and effective_end is None:
+                        # Stooq can return "No data" for open-ended range requests with only `f`.
+                        # Provide an explicit upper bound when a lower bound is present.
+                        effective_end = date.today()
                     if effective_start and effective_end and effective_end < effective_start:
                         skipped += 1
                         successes.append(
