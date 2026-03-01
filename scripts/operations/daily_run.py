@@ -46,8 +46,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fetch-delay-seconds",
         type=float,
-        default=0.4,
-        help="Delay between Stooq symbol requests (default: 0.4)",
+        default=2.0,
+        help="Base delay between Stooq symbol requests (default: 2.0)",
+    )
+    parser.add_argument(
+        "--fetch-delay-jitter-seconds",
+        type=float,
+        default=3.0,
+        help=(
+            "Random additional delay between Stooq symbol requests "
+            "(actual delay sampled from [base, base+jitter], default: 3.0)"
+        ),
     )
     parser.add_argument("--start-date", default="", help="Optional start date for fetch step (YYYY-MM-DD)")
     parser.add_argument("--ema-periods", default="50,200", help="EMA periods for compute_ema")
@@ -277,6 +286,8 @@ def main() -> int:
             args.fetch_interval,
             "--delay-seconds",
             str(args.fetch_delay_seconds),
+            "--delay-jitter-seconds",
+            str(args.fetch_delay_jitter_seconds),
         ]
         if args.start_date.strip():
             fetch_cmd.extend(["--start-date", args.start_date.strip()])

@@ -6,24 +6,29 @@ from __future__ import annotations
 import argparse
 import csv
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
+import random
 import time
 from typing import Iterable
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote_plus
+from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from scripts.paths import data_dir_for_interval, stooq_errors_file
 
-STOOQ_URL_TEMPLATE = "https://stooq.com/q/d/l/?s={symbol}&i={interval}"
+STOOQ_URL_BASE = "https://stooq.com/q/d/l/"
 CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
+DAILY_HITS_LIMIT_MSG = "Exceeded the daily hits limit"
 
 
 @dataclass
 class FetchResult:
     symbol: str
+    rows_fetched: int
     rows_written: int
+    rows_total: int
+    action: str
     output_path: Path
 
 
@@ -33,6 +38,10 @@ class FetchError:
     message: str
 
 
+class ProviderRateLimitError(RuntimeError):
+    """Raised when Stooq returns a provider-level request limit response."""
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
@@ -40,7 +49,11 @@ def parse_args() -> argparse.Namespace:
         "--interval",
         choices=["d", "w", "m", "all"],
         default="d",
-        help="Stooq interval: d=daily, w=weekly, m=monthly, all=d+w+m (default: d)",
+        help=(
+            "Data interval mode: d=fetch daily from Stooq, "
+            "w=derive weekly from daily CSV, m=derive monthly from daily CSV, "
+            "all=fetch daily then derive weekly+monthly (default: d)"
+        ),
     )
     parser.add_argument(
         "--out-dir",
@@ -48,6 +61,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Directory for per-symbol CSV output "
             "(default: out/data/daily for d, out/data/weekly for w, out/data/monthly for m)"
+        ),
+    )
+    parser.add_argument(
+        "--daily-source-dir",
+        default=None,
+        help=(
+            "Directory containing daily per-symbol CSV input used when deriving weekly/monthly "
+            "(default: out/data/daily)"
         ),
     )
     parser.add_argument(
@@ -62,12 +83,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--delay-seconds",
         type=float,
-        default=0.0,
-        help="Optional delay after each symbol fetch attempt (default: 0.0)",
+        default=2.0,
+        help="Base delay after each symbol fetch attempt (default: 2.0)",
+    )
+    parser.add_argument(
+        "--delay-jitter-seconds",
+        type=float,
+        default=3.0,
+        help=(
+            "Optional random additional delay per symbol. Actual delay is sampled "
+            "uniformly from [delay-seconds, delay-seconds + delay-jitter-seconds] "
+            "(default: 3.0)"
+        ),
     )
     parser.add_argument(
         "--start-date",
         help="Optional inclusive start date filter in YYYY-MM-DD format",
+    )
+    parser.add_argument(
+        "--end-date",
+        help="Optional inclusive end date filter in YYYY-MM-DD format",
+    )
+    parser.add_argument(
+        "--incremental",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Fetch only dates newer than existing per-symbol CSVs by using "
+            "Stooq f/t date params and local merge (default: on)"
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -99,8 +143,27 @@ def to_stooq_symbol(symbol: str) -> str:
     return f"{lowered}.us"
 
 
-def build_stooq_url(stooq_symbol: str, interval: str) -> str:
-    return STOOQ_URL_TEMPLATE.format(symbol=quote_plus(stooq_symbol), interval=interval)
+def format_stooq_date(value: date) -> str:
+    return value.strftime("%Y%m%d")
+
+
+def build_stooq_url(
+    stooq_symbol: str,
+    interval: str,
+    *,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> str:
+    params = {
+        "s": stooq_symbol,
+        "i": interval,
+    }
+    if from_date is not None:
+        params["f"] = format_stooq_date(from_date)
+    if to_date is not None:
+        params["t"] = format_stooq_date(to_date)
+    # Keep ^, . for index/ticker syntax while escaping query separators safely.
+    return f"{STOOQ_URL_BASE}?{urlencode(params, safe='^.')}"
 
 
 def interval_label(interval: str) -> str:
@@ -141,6 +204,9 @@ def fetch_stooq_rows(url: str, timeout: int) -> list[dict[str, str]]:
     with urlopen(url, timeout=timeout) as response:
         content = response.read().decode("utf-8")
 
+    if DAILY_HITS_LIMIT_MSG.lower() in content.lower():
+        raise ProviderRateLimitError(DAILY_HITS_LIMIT_MSG)
+
     reader = csv.DictReader(content.splitlines())
     if not reader.fieldnames:
         raise ValueError("Stooq response did not contain CSV headers")
@@ -159,6 +225,119 @@ def fetch_stooq_rows(url: str, timeout: int) -> list[dict[str, str]]:
     return rows
 
 
+def read_existing_rows(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        missing = [col for col in CSV_COLUMNS if col not in (reader.fieldnames or [])]
+        if missing:
+            raise ValueError(f"Existing CSV missing expected columns: {', '.join(missing)}")
+        rows = [
+            {col: row.get(col, "") for col in CSV_COLUMNS}
+            for row in reader
+            if any((row.get(col) or "").strip() for col in CSV_COLUMNS)
+        ]
+    rows.sort(key=lambda item: item["Date"])
+    return rows
+
+
+def parse_float(value: str | None) -> float | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    return float(raw)
+
+
+def parse_volume(value: str | None) -> int:
+    raw = (value or "").strip()
+    if not raw:
+        return 0
+    return int(float(raw))
+
+
+def format_float(value: float | None) -> str:
+    if value is None:
+        return ""
+    text = f"{value:.6f}".rstrip("0").rstrip(".")
+    return text if text else "0"
+
+
+def aggregate_rows(rows: list[dict[str, str]], timeframe: str) -> list[dict[str, str]]:
+    if timeframe not in {"weekly", "monthly"}:
+        raise ValueError(f"Unsupported aggregation timeframe: {timeframe!r}")
+
+    ordered = sorted(rows, key=lambda row: row["Date"])
+    buckets: list[dict[str, object]] = []
+    current_key: tuple[int, int] | None = None
+    bucket: dict[str, object] | None = None
+
+    for row in ordered:
+        row_date = parse_iso_date(row["Date"], field_name="row Date")
+        if timeframe == "weekly":
+            iso_year, iso_week, _ = row_date.isocalendar()
+            key = (iso_year, iso_week)
+        else:
+            key = (row_date.year, row_date.month)
+
+        open_value = parse_float(row.get("Open"))
+        high_value = parse_float(row.get("High"))
+        low_value = parse_float(row.get("Low"))
+        close_value = parse_float(row.get("Close"))
+        if close_value is None:
+            continue
+
+        if key != current_key:
+            if bucket is not None:
+                buckets.append(bucket)
+            bucket = {
+                "Date": row["Date"],
+                "Open": open_value if open_value is not None else close_value,
+                "High": high_value if high_value is not None else close_value,
+                "Low": low_value if low_value is not None else close_value,
+                "Close": close_value,
+                "Volume": parse_volume(row.get("Volume")),
+            }
+            current_key = key
+            continue
+
+        if bucket is None:
+            continue
+
+        bucket["Date"] = row["Date"]
+        current_high = bucket.get("High")
+        current_low = bucket.get("Low")
+        if high_value is not None and (current_high is None or high_value > current_high):
+            bucket["High"] = high_value
+        if low_value is not None and (current_low is None or low_value < current_low):
+            bucket["Low"] = low_value
+        bucket["Close"] = close_value
+        bucket["Volume"] = int(bucket.get("Volume", 0)) + parse_volume(row.get("Volume"))
+
+    if bucket is not None:
+        buckets.append(bucket)
+
+    output: list[dict[str, str]] = []
+    for item in buckets:
+        output.append(
+            {
+                "Date": str(item["Date"]),
+                "Open": format_float(item.get("Open") if isinstance(item.get("Open"), float) else None),
+                "High": format_float(item.get("High") if isinstance(item.get("High"), float) else None),
+                "Low": format_float(item.get("Low") if isinstance(item.get("Low"), float) else None),
+                "Close": format_float(item.get("Close") if isinstance(item.get("Close"), float) else None),
+                "Volume": str(int(item.get("Volume", 0))),
+            }
+        )
+    return output
+
+
+def latest_row_date(rows: list[dict[str, str]]) -> date | None:
+    if not rows:
+        return None
+    return parse_iso_date(rows[-1]["Date"], field_name="existing row Date")
+
+
 def filter_rows_by_start_date(rows: list[dict[str, str]], start_date: date | None) -> list[dict[str, str]]:
     if start_date is None:
         return rows
@@ -169,6 +348,33 @@ def filter_rows_by_start_date(rows: list[dict[str, str]], start_date: date | Non
         if row_date >= start_date:
             filtered_rows.append(row)
     return filtered_rows
+
+
+def filter_rows_by_end_date(rows: list[dict[str, str]], end_date: date | None) -> list[dict[str, str]]:
+    if end_date is None:
+        return rows
+
+    filtered_rows: list[dict[str, str]] = []
+    for row in rows:
+        row_date = parse_iso_date(row["Date"], field_name="row Date")
+        if row_date <= end_date:
+            filtered_rows.append(row)
+    return filtered_rows
+
+
+def merge_rows(
+    existing_rows: list[dict[str, str]],
+    incoming_rows: list[dict[str, str]],
+) -> tuple[list[dict[str, str]], int]:
+    by_date: dict[str, dict[str, str]] = {row["Date"]: row for row in existing_rows}
+    new_rows = 0
+    for row in incoming_rows:
+        if row["Date"] not in by_date:
+            new_rows += 1
+        by_date[row["Date"]] = row
+
+    merged = [by_date[key] for key in sorted(by_date.keys())]
+    return merged, new_rows
 
 
 def write_symbol_csv(path: Path, rows: Iterable[dict[str, str]]) -> int:
@@ -209,6 +415,14 @@ def main() -> int:
     except ValueError as exc:
         print(f"[error] {exc}")
         return 1
+    try:
+        end_date = parse_iso_date(args.end_date, field_name="--end-date") if args.end_date else None
+    except ValueError as exc:
+        print(f"[error] {exc}")
+        return 1
+    if start_date and end_date and end_date < start_date:
+        print("[error] --end-date must be >= --start-date")
+        return 1
 
     try:
         symbols = read_watchlist(watchlist_path)
@@ -223,15 +437,32 @@ def main() -> int:
     if args.delay_seconds < 0:
         print("[error] --delay-seconds must be >= 0")
         return 1
+    if args.delay_jitter_seconds < 0:
+        print("[error] --delay-jitter-seconds must be >= 0")
+        return 1
 
     total_successes = 0
     total_failures = 0
+    provider_rate_limited = False
 
     mode = "dry-run" if args.dry_run else "fetch"
     print(f"Mode: {mode}")
     print(f"Intervals: {', '.join(intervals)}")
     print(f"Symbols: {len(symbols)}")
     print(f"Delay seconds: {args.delay_seconds}")
+    max_delay = args.delay_seconds + args.delay_jitter_seconds
+    print(
+        "Delay jitter seconds: "
+        f"{args.delay_jitter_seconds} "
+        f"(actual per symbol in [{args.delay_seconds:.3f}, {max_delay:.3f}])"
+    )
+    print(f"Incremental: {args.incremental}")
+    if start_date:
+        print(f"Start date: {start_date.isoformat()}")
+    if end_date:
+        print(f"End date: {end_date.isoformat()}")
+
+    daily_source_dir = Path(args.daily_source_dir) if args.daily_source_dir else data_dir_for_interval("d")
 
     for interval in intervals:
         out_dir, errors_path = resolve_output_paths(
@@ -243,39 +474,207 @@ def main() -> int:
         print(f"\nInterval {interval_label(interval)} ({interval})")
         successes: list[FetchResult] = []
         errors: list[FetchError] = []
+        skipped = 0
+
+        if interval in {"w", "m"} and (start_date or end_date):
+            print("  note: --start-date/--end-date are ignored for derived weekly/monthly intervals")
 
         for symbol in symbols:
             stooq_symbol = to_stooq_symbol(symbol)
-            url = build_stooq_url(stooq_symbol, interval=interval)
+            output_path = out_dir / f"{symbol}.csv"
 
-            if args.dry_run:
-                print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
+            if interval == "d":
+                try:
+                    existing_rows = read_existing_rows(output_path) if args.incremental else []
+                    existing_latest = latest_row_date(existing_rows) if args.incremental else None
+
+                    effective_start = start_date
+                    if args.incremental and existing_latest is not None:
+                        next_missing = existing_latest + timedelta(days=1)
+                        effective_start = max(next_missing, start_date) if start_date else next_missing
+                    effective_end = end_date
+                    if effective_start is not None and effective_end is None:
+                        # Stooq can return "No data" for open-ended range requests with only `f`.
+                        # Provide an explicit upper bound when a lower bound is present.
+                        effective_end = date.today()
+                    if effective_start and effective_end and effective_end < effective_start:
+                        skipped += 1
+                        successes.append(
+                            FetchResult(
+                                symbol=symbol,
+                                rows_fetched=0,
+                                rows_written=0,
+                                rows_total=len(existing_rows),
+                                action="skip",
+                                output_path=output_path,
+                            )
+                        )
+                        print(
+                            f"[skip] {symbol} ({stooq_symbol}) -> no missing dates "
+                            f"(existing through {existing_latest.isoformat() if existing_latest else 'n/a'})"
+                        )
+                        continue
+
+                    url = build_stooq_url(
+                        stooq_symbol,
+                        interval=interval,
+                        from_date=effective_start,
+                        to_date=effective_end,
+                    )
+
+                    if args.dry_run:
+                        print(f"[dry-run] {symbol} ({stooq_symbol}) -> {url}")
+                        continue
+
+                    rows = fetch_stooq_rows(url=url, timeout=args.timeout)
+                    rows = filter_rows_by_start_date(rows, start_date=effective_start)
+                    rows = filter_rows_by_end_date(rows, end_date=effective_end)
+
+                    if args.incremental:
+                        merged_rows, new_rows = merge_rows(existing_rows, rows)
+                        if new_rows == 0 and output_path.exists():
+                            skipped += 1
+                            successes.append(
+                                FetchResult(
+                                    symbol=symbol,
+                                    rows_fetched=len(rows),
+                                    rows_written=0,
+                                    rows_total=len(existing_rows),
+                                    action="skip",
+                                    output_path=output_path,
+                                )
+                            )
+                            print(
+                                f"[skip] {symbol} ({stooq_symbol}) -> {output_path} "
+                                f"(fetched={len(rows)} new=0 total={len(existing_rows)})"
+                            )
+                        else:
+                            row_count = write_symbol_csv(output_path, merged_rows)
+                            successes.append(
+                                FetchResult(
+                                    symbol=symbol,
+                                    rows_fetched=len(rows),
+                                    rows_written=new_rows,
+                                    rows_total=row_count,
+                                    action="merge",
+                                    output_path=output_path,
+                                )
+                            )
+                            print(
+                                f"[ok] {symbol} ({stooq_symbol}) -> {output_path} "
+                                f"(fetched={len(rows)} new={new_rows} total={row_count})"
+                            )
+                    else:
+                        row_count = write_symbol_csv(output_path, rows)
+                        successes.append(
+                            FetchResult(
+                                symbol=symbol,
+                                rows_fetched=len(rows),
+                                rows_written=row_count,
+                                rows_total=row_count,
+                                action="replace",
+                                output_path=output_path,
+                            )
+                        )
+                        print(
+                            f"[ok] {symbol} ({stooq_symbol}) -> {output_path} "
+                            f"(rows={row_count})"
+                        )
+                except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+                    message = str(exc)
+                    errors.append(FetchError(symbol=symbol, message=message))
+                    print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+                except ProviderRateLimitError as exc:
+                    message = str(exc)
+                    errors.append(FetchError(symbol=symbol, message=message))
+                    print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+                    print("  [stop] provider rate limit reached; stopping remaining symbols")
+                    provider_rate_limited = True
+                    break
+                except Exception as exc:
+                    message = f"Unexpected error: {exc}"
+                    errors.append(FetchError(symbol=symbol, message=message))
+                    print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+                finally:
+                    if (not args.dry_run) and (args.delay_seconds > 0 or args.delay_jitter_seconds > 0):
+                        sleep_seconds = random.uniform(
+                            args.delay_seconds,
+                            args.delay_seconds + args.delay_jitter_seconds,
+                        )
+                        time.sleep(sleep_seconds)
                 continue
 
+            timeframe = "weekly" if interval == "w" else "monthly"
+            daily_path = daily_source_dir / f"{symbol}.csv"
             try:
-                rows = fetch_stooq_rows(url=url, timeout=args.timeout)
-                rows = filter_rows_by_start_date(rows, start_date=start_date)
-                output_path = out_dir / f"{symbol}.csv"
-                row_count = write_symbol_csv(output_path, rows)
-                successes.append(FetchResult(symbol=symbol, rows_written=row_count, output_path=output_path))
-                print(f"[ok] {symbol} ({stooq_symbol}) -> {output_path} ({row_count} rows)")
-            except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+                if args.dry_run:
+                    print(
+                        f"[dry-run] {symbol} -> derive {timeframe} from {daily_path} "
+                        f"-> {output_path}"
+                    )
+                    continue
+
+                if not daily_path.exists():
+                    raise FileNotFoundError(f"Daily CSV not found: {daily_path}")
+
+                daily_rows = read_existing_rows(daily_path)
+                if not daily_rows:
+                    raise ValueError("Daily CSV has no rows")
+
+                derived_rows = aggregate_rows(daily_rows, timeframe=timeframe)
+                if not derived_rows:
+                    raise ValueError(f"No {timeframe} rows could be derived from daily CSV")
+
+                existing_rows = read_existing_rows(output_path) if output_path.exists() else []
+                if args.incremental and output_path.exists() and existing_rows == derived_rows:
+                    skipped += 1
+                    successes.append(
+                        FetchResult(
+                            symbol=symbol,
+                            rows_fetched=len(daily_rows),
+                            rows_written=0,
+                            rows_total=len(existing_rows),
+                            action="skip",
+                            output_path=output_path,
+                        )
+                    )
+                    print(
+                        f"[skip] {symbol} (derived {timeframe}) -> {output_path} "
+                        f"(source_rows={len(daily_rows)} rows unchanged)"
+                    )
+                    continue
+
+                row_count = write_symbol_csv(output_path, derived_rows)
+                rows_written = max(0, row_count - len(existing_rows))
+                successes.append(
+                    FetchResult(
+                        symbol=symbol,
+                        rows_fetched=len(daily_rows),
+                        rows_written=rows_written,
+                        rows_total=row_count,
+                        action="derive",
+                        output_path=output_path,
+                    )
+                )
+                print(
+                    f"[ok] {symbol} (derived {timeframe}) -> {output_path} "
+                    f"(source_rows={len(daily_rows)} rows={row_count})"
+                )
+            except (FileNotFoundError, ValueError) as exc:
                 message = str(exc)
                 errors.append(FetchError(symbol=symbol, message=message))
-                print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+                print(f"[fail] {symbol} (derived {timeframe}) -> {message}")
             except Exception as exc:
                 message = f"Unexpected error: {exc}"
                 errors.append(FetchError(symbol=symbol, message=message))
-                print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
-            finally:
-                if args.delay_seconds > 0:
-                    time.sleep(args.delay_seconds)
+                print(f"[fail] {symbol} (derived {timeframe}) -> {message}")
 
         if not args.dry_run:
             write_errors_csv(errors_path, errors)
 
         print("  Summary")
         print(f"    success: {len(successes)}")
+        print(f"    skipped: {skipped}")
         print(f"    failed:  {len(errors)}")
         print(f"    out dir: {out_dir}")
         print(f"    errors file: {errors_path}")
@@ -288,6 +687,8 @@ def main() -> int:
     print(f"  symbols: {len(symbols)}")
     print(f"  success: {total_successes}")
     print(f"  failed:  {total_failures}")
+    if provider_rate_limited:
+        print("  provider_rate_limited: true")
 
     if args.dry_run:
         return 0
