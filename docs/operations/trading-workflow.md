@@ -28,7 +28,7 @@ python3 -m scripts.operations.daily_run --label daily --fetch-interval all
 
 ### Step 1: Refresh data
 ```bash
-python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
+python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 2.0 --delay-jitter-seconds 3.0
 ```
 
 ### Step 2: Refresh indicators and signals
