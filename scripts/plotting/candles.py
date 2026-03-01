@@ -170,13 +170,52 @@ def overlay_event_markers(
     events: list[str],
     *,
     marker_map: dict[str, dict[str, Any]],
+    highs: list[float] | None = None,
+    lows: list[float] | None = None,
 ) -> None:
-    """Overlay event markers mapped by event name."""
+    """Overlay event markers mapped by event name.
+
+    Marker styles can optionally include:
+    - ``anchor``: ``"close"`` (default), ``"high"``, or ``"low"``
+    - ``y_offset_frac``: vertical offset as a fraction of the visible price span
+    """
+
+    price_values: list[float] = []
+    if highs is not None:
+        price_values.extend(highs)
+    if lows is not None:
+        price_values.extend(lows)
+    price_values.extend(closes)
+    if price_values:
+        price_span = max(price_values) - min(price_values)
+    else:
+        price_span = 1.0
+    if math.isclose(price_span, 0.0, abs_tol=1e-12):
+        baseline = abs(closes[-1]) if closes else 1.0
+        price_span = max(1.0, baseline * 0.01)
 
     seen: set[str] = set()
     for event_name, style in marker_map.items():
-        xs = [day for day, event in zip(dates, events, strict=True) if event == event_name]
-        ys = [price for price, event in zip(closes, events, strict=True) if event == event_name]
+        xs: list[date] = []
+        ys: list[float] = []
+        anchor = str(style.get("anchor", "close")).lower()
+        try:
+            y_offset_frac = float(style.get("y_offset_frac", 0.0))
+        except (TypeError, ValueError):
+            y_offset_frac = 0.0
+
+        for idx, (day, event) in enumerate(zip(dates, events, strict=True)):
+            if event != event_name:
+                continue
+            if anchor == "high" and highs is not None:
+                base_price = highs[idx]
+            elif anchor == "low" and lows is not None:
+                base_price = lows[idx]
+            else:
+                base_price = closes[idx]
+            xs.append(day)
+            ys.append(base_price + (price_span * y_offset_frac))
+
         if not xs:
             continue
         label = style.get("label", event_name)
@@ -194,4 +233,3 @@ def overlay_event_markers(
             label=legend_label,
             zorder=6,
         )
-
