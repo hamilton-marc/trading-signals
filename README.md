@@ -25,6 +25,7 @@ Implementation code is organized under `scripts/`:
 - `scripts/reports/`: shortlist/ranking reports
 - `scripts/operations/`: end-to-end run orchestration
 - `scripts/maintenance/`: housekeeping + layout checks
+- `scripts/plotting/`: reusable notebook plotting helpers (candles/volume/overlays)
 
 Run commands via modules: `python3 -m scripts.<group>.<script>`
 Root-level script wrappers were removed in the latest reorganization.
@@ -58,6 +59,7 @@ python3 -m scripts.reports.recent_momentum_report
 4. Open notebook for chart review of all recent symbols
 
 - `notebooks/recent_signal_lab.ipynb`
+  - default chart mode: candlesticks + volume subpanel (`CHART_STYLE = "candles"`)
 
 Generated shortlist artifacts:
 - `out/reports/momentum/recent_momentum_buys_5d.csv`
@@ -81,6 +83,14 @@ Notebook assumptions:
 - Most notebooks read pre-generated CSV artifacts from `out/`
 - Run the relevant CLI steps first (at minimum: fetch data + compute indicators/signals)
 - Use the same Python environment where dependencies are installed (`matplotlib`, `pandas` when needed)
+- Core review notebooks now default to candlestick charts with volume panels:
+  - `notebooks/ema_lab.ipynb`
+  - `notebooks/recent_signal_lab.ipynb`
+  - `notebooks/recent_signal_lab_weekly.ipynb`
+  - `notebooks/weekly_trend_watchlist_lab.ipynb`
+- These notebooks support a chart toggle at the top of the code cell:
+  - `CHART_STYLE = "candles"` (default)
+  - `CHART_STYLE = "line"` (fallback)
 
 ## Command Discovery
 

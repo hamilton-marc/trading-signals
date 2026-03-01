@@ -69,6 +69,9 @@ Primary artifacts:
 - `notebooks/recent_signal_lab_weekly.ipynb`
 - `notebooks/weekly_trend_watchlist_lab.ipynb`
 
+Chart note:
+- Core review notebooks default to candlestick price charts with volume subpanels and support `CHART_STYLE = "line"` fallback in the config cell.
+
 Decision focus:
 - Rank/score from report.
 - Trend quality context from chart (EMA/trend alignment).
