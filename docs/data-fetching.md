@@ -18,6 +18,7 @@ python3 -m scripts.data.fetch_stooq_ohlc
 Examples:
 
 ```bash
+export STOOQ_APIKEY=your_key_here
 python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 2.0 --delay-jitter-seconds 3.0
 python3 -m scripts.data.fetch_stooq_ohlc --interval d --start-date 2024-01-01
 python3 -m scripts.data.fetch_stooq_ohlc --interval d --start-date 2026-02-20 --end-date 2026-02-27
@@ -41,6 +42,10 @@ When date filters are available, it uses:
 
 `https://stooq.com/q/d/l/?s=<symbol>.us&i=d&f=<YYYYMMDD>&t=<YYYYMMDD>`
 
+If you configure an API key, the fetcher appends:
+
+`&apikey=<YOUR_KEY>`
+
 ## Notes
 - The runner is fault-tolerant per symbol (one failure does not abort all symbols).
 - Weekly/monthly are derived locally from `out/data/daily/<SYMBOL>.csv` to reduce provider requests.
@@ -51,3 +56,4 @@ When date filters are available, it uses:
   - `--delay-seconds 2.0`
   - `--delay-jitter-seconds 3.0`
   - Actual sleep per symbol is uniformly sampled from `[2.0, 5.0]` seconds by default.
+- Stooq now requires an API key for CSV downloads. Supply it with `--api-key` or by setting `STOOQ_APIKEY` before running fetch commands.

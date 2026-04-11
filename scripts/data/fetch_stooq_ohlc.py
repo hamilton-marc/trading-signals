@@ -7,6 +7,7 @@ import argparse
 import csv
 from dataclasses import dataclass
 from datetime import date, timedelta
+import os
 from pathlib import Path
 import random
 import time
@@ -20,6 +21,7 @@ from scripts.paths import data_dir_for_interval, stooq_errors_file
 STOOQ_URL_BASE = "https://stooq.com/q/d/l/"
 CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
 DAILY_HITS_LIMIT_MSG = "Exceeded the daily hits limit"
+API_KEY_REQUIRED_MSG = "Get your apikey"
 
 
 @dataclass
@@ -40,6 +42,10 @@ class FetchError:
 
 class ProviderRateLimitError(RuntimeError):
     """Raised when Stooq returns a provider-level request limit response."""
+
+
+class ProviderAuthenticationError(RuntimeError):
+    """Raised when Stooq requires an API key for CSV downloads."""
 
 
 def parse_args() -> argparse.Namespace:
@@ -77,6 +83,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "CSV file path for symbol-level errors "
             "(default: out/_meta/errors/stooq_daily_errors.csv for d, out/_meta/errors/stooq_weekly_errors.csv for w, out/_meta/errors/stooq_monthly_errors.csv for m)"
+        ),
+    )
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("STOOQ_APIKEY"),
+        help=(
+            "Optional Stooq API key. Defaults to STOOQ_APIKEY environment variable "
+            "when set."
         ),
     )
     parser.add_argument("--timeout", type=int, default=15, help="HTTP timeout in seconds")
@@ -151,6 +165,7 @@ def build_stooq_url(
     stooq_symbol: str,
     interval: str,
     *,
+    api_key: str | None = None,
     from_date: date | None = None,
     to_date: date | None = None,
 ) -> str:
@@ -162,6 +177,8 @@ def build_stooq_url(
         params["f"] = format_stooq_date(from_date)
     if to_date is not None:
         params["t"] = format_stooq_date(to_date)
+    if api_key:
+        params["apikey"] = api_key
     # Keep ^, . for index/ticker syntax while escaping query separators safely.
     return f"{STOOQ_URL_BASE}?{urlencode(params, safe='^.')}"
 
@@ -206,6 +223,11 @@ def fetch_stooq_rows(url: str, timeout: int) -> list[dict[str, str]]:
 
     if DAILY_HITS_LIMIT_MSG.lower() in content.lower():
         raise ProviderRateLimitError(DAILY_HITS_LIMIT_MSG)
+    if API_KEY_REQUIRED_MSG.lower() in content.lower() or "get_apikey" in content.lower():
+        raise ProviderAuthenticationError(
+            "Stooq CSV download now requires an API key. "
+            "Pass --api-key or set STOOQ_APIKEY."
+        )
 
     reader = csv.DictReader(content.splitlines())
     if not reader.fieldnames:
@@ -443,12 +465,13 @@ def main() -> int:
 
     total_successes = 0
     total_failures = 0
-    provider_rate_limited = False
+    provider_stopped_early = False
 
     mode = "dry-run" if args.dry_run else "fetch"
     print(f"Mode: {mode}")
     print(f"Intervals: {', '.join(intervals)}")
     print(f"Symbols: {len(symbols)}")
+    print(f"API key configured: {'yes' if args.api_key else 'no'}")
     print(f"Delay seconds: {args.delay_seconds}")
     max_delay = args.delay_seconds + args.delay_jitter_seconds
     print(
@@ -518,6 +541,7 @@ def main() -> int:
                     url = build_stooq_url(
                         stooq_symbol,
                         interval=interval,
+                        api_key=args.api_key,
                         from_date=effective_start,
                         to_date=effective_end,
                     )
@@ -589,7 +613,14 @@ def main() -> int:
                     errors.append(FetchError(symbol=symbol, message=message))
                     print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
                     print("  [stop] provider rate limit reached; stopping remaining symbols")
-                    provider_rate_limited = True
+                    provider_stopped_early = True
+                    break
+                except ProviderAuthenticationError as exc:
+                    message = str(exc)
+                    errors.append(FetchError(symbol=symbol, message=message))
+                    print(f"[fail] {symbol} ({stooq_symbol}) -> {message}")
+                    print("  [stop] provider authentication required; stopping remaining symbols")
+                    provider_stopped_early = True
                     break
                 except Exception as exc:
                     message = f"Unexpected error: {exc}"
@@ -687,8 +718,8 @@ def main() -> int:
     print(f"  symbols: {len(symbols)}")
     print(f"  success: {total_successes}")
     print(f"  failed:  {total_failures}")
-    if provider_rate_limited:
-        print("  provider_rate_limited: true")
+    if provider_stopped_early:
+        print("  provider_stopped_early: true")
 
     if args.dry_run:
         return 0

@@ -35,12 +35,14 @@ Root-level script wrappers were removed in the latest reorganization.
 Single-command runner:
 
 ```bash
+export STOOQ_APIKEY=your_key_here
 python3 -m scripts.operations.daily_run --label daily --fetch-interval all
 ```
 
 1. Refresh market data
 
 ```bash
+export STOOQ_APIKEY=your_key_here
 python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
 ```
 
@@ -124,6 +126,7 @@ See also: `docs/data-fetching.md` for a focused fetch reference.
 Default daily fetch:
 
 ```bash
+export STOOQ_APIKEY=your_key_here
 python3 -m scripts.data.fetch_stooq_ohlc
 ```
 
@@ -142,6 +145,9 @@ Writes:
 - `out/data/weekly/<SYMBOL>.csv`
 - `out/data/monthly/<SYMBOL>.csv`
 - error files in `out/_meta/errors/` (by timeframe)
+
+Note:
+- Stooq now requires an API key for CSV downloads. Supply it with `--api-key` or by setting `STOOQ_APIKEY`.
 
 ### Indicator Pipeline
 
