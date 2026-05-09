@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+SECRET_ENV_NAME="STOOQ_APIKEY"
+cd "$ROOT"
+
+fail() {
+  printf '[fail] %s\n' "$1" >&2
+  exit 1
+}
+
+staged_files() {
+  git diff --cached --name-only --diff-filter=ACMR
+}
+
+check_secret_hygiene() {
+  local file line content value
+
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    [ -f "$file" ] || continue
+
+    case "$file" in
+      .env|*.env)
+        if [ "$file" != ".env.example" ]; then
+          fail "tracked secret file detected: $file"
+        fi
+        ;;
+    esac
+
+    while IFS= read -r line; do
+      case "$line" in
+        *"${SECRET_ENV_NAME}"=*)
+          case "$line" in
+            \#*) continue ;;
+            *your_key_here*|*your_real_key_here*|*your_stooq_api_key_here*|*\<YOUR_KEY\>*|*...*)
+              continue
+              ;;
+            *"export ${SECRET_ENV_NAME}=$"*)
+              continue
+              ;;
+          esac
+
+          value="${line#*"${SECRET_ENV_NAME}="}"
+          value="${value%\"}"
+          value="${value#\"}"
+          value="${value%\'}"
+          value="${value#\'}"
+
+          case "$value" in
+            ""|"#"*|'$'[A-Za-z_]*)
+              continue
+              ;;
+          esac
+
+          fail "potential ${SECRET_ENV_NAME} assignment detected in $file"
+          ;;
+      esac
+    done < "$file"
+  done < <(staged_files)
+}
+
+run_gitleaks_if_available() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    printf '[run] gitleaks\n'
+    gitleaks protect --staged --verbose
+  else
+    printf '[warn] gitleaks not installed; skipping secret scan\n' >&2
+  fi
+}
+
+check_secret_hygiene
+run_gitleaks_if_available
