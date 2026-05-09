@@ -7,7 +7,7 @@ python3 -m scripts.data.fetch_stooq_ohlc
 ```
 
 ## Inputs
-- Symbols: `watchlist.txt` (one symbol per line, US ticker form)
+- Symbols: `watchlists/watchlist.md` by default. Markdown headings and other decorative lines are ignored; symbol lines are parsed from the remaining content.
 
 ## Timeframes
 - Daily fetch from Stooq: `--interval d` (default)
@@ -45,6 +45,14 @@ When date filters are available, it uses:
 If you configure an API key, the fetcher appends:
 
 `&apikey=<YOUR_KEY>`
+
+## API Key Placement
+- Preferred: store `export STOOQ_APIKEY=...` in `~/.bashrc` so shells and local agents consistently inherit it.
+- Repo-local fallback: copy `.env.example` to `.env` in the repo root and place `STOOQ_APIKEY=...` there.
+- The fetcher now loads repo-root `.env` automatically when present.
+- `.env` is already ignored by Git and must not be committed.
+- Install the repo shell hook with `bash scripts/maintenance/install_git_hooks.sh`.
+- The hook blocks tracked `.env` files and likely `STOOQ_APIKEY` assignments, and runs `gitleaks` when installed.
 
 ## Notes
 - The runner is fault-tolerant per symbol (one failure does not abort all symbols).

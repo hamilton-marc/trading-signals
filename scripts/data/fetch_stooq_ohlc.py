@@ -16,12 +16,16 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+from scripts.env import load_project_env
 from scripts.paths import data_dir_for_interval, stooq_errors_file
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 STOOQ_URL_BASE = "https://stooq.com/q/d/l/"
 CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
 DAILY_HITS_LIMIT_MSG = "Exceeded the daily hits limit"
 API_KEY_REQUIRED_MSG = "Get your apikey"
+
+load_project_env()
 
 
 @dataclass
@@ -50,7 +54,7 @@ class ProviderAuthenticationError(RuntimeError):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument(
         "--interval",
         choices=["d", "w", "m", "all"],
@@ -133,19 +137,6 @@ def parse_args() -> argparse.Namespace:
         help="Print resolved Stooq URLs and skip network fetch/writes",
     )
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-
-    symbols: list[str] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def to_stooq_symbol(symbol: str) -> str:

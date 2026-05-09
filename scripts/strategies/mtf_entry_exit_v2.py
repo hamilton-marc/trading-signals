@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from scripts.paths import DATA_DAILY_DIR, DATA_MONTHLY_DIR, DATA_WEEKLY_DIR, META_ERRORS_DIR, META_LATEST_DIR, META_SUMMARIES_DIR, STRATEGIES_MTF_V2_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -58,7 +59,7 @@ class SymbolSummary:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument("--daily-input-dir", default=str(DATA_DAILY_DIR), help="Directory with daily OHLC CSV files")
     parser.add_argument("--weekly-input-dir", default=str(DATA_WEEKLY_DIR), help="Directory with weekly OHLC CSV files")
     parser.add_argument("--monthly-input-dir", default=str(DATA_MONTHLY_DIR), help="Directory with monthly OHLC CSV files")
@@ -146,18 +147,6 @@ def parse_args() -> argparse.Namespace:
         help="Bars to block new entries after kill-switch exit",
     )
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-    symbols: list[str] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def parse_float(value: str | None) -> float | None:

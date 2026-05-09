@@ -16,7 +16,7 @@ Related policy:
 - Workflow runs after market close (EOD data).
 
 ## Inputs
-- Watchlist: `watchlist.txt`
+- Watchlist: `watchlists/watchlist.md` by default
 - (Planned) current holdings list: `positions/current_positions.csv`
 
 ## Daily Workflow (EOD)

@@ -1,0 +1,25 @@
+# Holdings
+## ETFs
+SHYG
+IGSB
+IGIB
+USHY
+XLV
+VGK
+
+## Options
+AMZN
+APO
+AAPL
+BX
+BSX
+CSCO
+EBAY
+QQQ
+MSFT
+OHI
+XLU
+SYF
+
+# Stocks
+PSO

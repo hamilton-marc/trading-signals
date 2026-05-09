@@ -148,6 +148,12 @@ Writes:
 
 Note:
 - Stooq now requires an API key for CSV downloads. Supply it with `--api-key` or by setting `STOOQ_APIKEY`.
+- Safe secret storage:
+  - preferred: add `export STOOQ_APIKEY=...` to `~/.bashrc`
+  - repo-local fallback: create `.env` from `.env.example`
+  - do not commit `.env`; it is ignored by Git
+  - install the repo shell hook with `bash scripts/maintenance/install_git_hooks.sh`
+  - the hook blocks tracked `.env` files and likely `STOOQ_APIKEY` assignments, and runs `gitleaks` when installed
 
 ### Indicator Pipeline
 
@@ -268,7 +274,8 @@ Main notebooks currently used:
 
 ## Notes
 
-- `watchlist.txt` is the primary symbol input.
+- `watchlists/watchlist.md` is the primary symbol input.
+- `watchlists/holdings.md` is available for owned-position analysis when you want a narrower list.
 - `out/` is for generated artifacts and is ignored by Git.
 - Operational runbook: `docs/operations/trading-workflow.md`
 - Files under `docs/milestones/` are historical snapshots and may include legacy command examples.

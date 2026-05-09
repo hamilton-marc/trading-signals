@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 from scripts.paths import INDICATORS_MOMENTUM_TV_MATCH_DIR, META_LATEST_DIR, OUT_ROOT, REPORTS_MOMENTUM_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -31,7 +32,7 @@ class StepResult:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--label", default="daily", help="Run label used in out/runs/<date>_<label>")
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Watchlist file path")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Watchlist file path")
     parser.add_argument(
         "--symbols",
         default="",
@@ -112,9 +113,8 @@ def ensure_effective_watchlist(
         target.write_text("\n".join(symbols_override) + "\n", encoding="utf-8")
         return target
 
-    if not source_watchlist.exists():
-        raise FileNotFoundError(f"Watchlist not found: {source_watchlist}")
-    target.write_text(source_watchlist.read_text(encoding="utf-8"), encoding="utf-8")
+    symbols = read_watchlist(source_watchlist)
+    target.write_text("\n".join(symbols) + "\n", encoding="utf-8")
     return target
 
 

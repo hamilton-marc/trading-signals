@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from scripts.paths import DATA_DAILY_DIR, DATA_MONTHLY_DIR, DATA_WEEKLY_DIR, STRATEGIES_ENTRY_TIER_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -64,7 +65,7 @@ class Summary:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist")
     parser.add_argument("--symbols", default="", help="Optional comma-separated symbols override")
     parser.add_argument("--daily-input-dir", default=str(DATA_DAILY_DIR))
     parser.add_argument("--weekly-input-dir", default=str(DATA_WEEKLY_DIR))
@@ -87,18 +88,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hard-stop-atr-mult", type=float, default=1.5)
     parser.add_argument("--no-plots", action="store_true", help="Skip PNG chart generation")
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-    symbols: list[str] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def parse_date_or_none(value: str) -> date | None:

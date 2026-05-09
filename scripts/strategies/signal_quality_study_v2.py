@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from scripts.paths import STRATEGIES_MTF_V2_DIR, STRATEGIES_SIGNAL_QUALITY_V2_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -27,7 +28,7 @@ class StudyConfig:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist")
     parser.add_argument(
         "--symbols",
         default="",
@@ -62,18 +63,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--date-from", default="", help="Optional inclusive start date YYYY-MM-DD")
     parser.add_argument("--date-to", default="", help="Optional inclusive end date YYYY-MM-DD")
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-    symbols: list[str] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def parse_symbols(args: argparse.Namespace) -> list[str]:

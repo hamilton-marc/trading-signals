@@ -17,6 +17,7 @@ from scripts.paths import (
     momentum_tv_match_latest_file,
     momentum_tv_match_output_dir,
 )
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -34,7 +35,7 @@ class SymbolError:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument("--symbols", default="", help="Optional comma-separated symbol override")
     parser.add_argument(
         "--timeframe",
@@ -105,19 +106,6 @@ def resolve_paths(
         errors_file = momentum_tv_match_errors_file(timeframe)
 
     return input_dir, out_dir, latest_file, errors_file
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-
-    symbols: list[str] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def parse_symbols(value: str, watchlist_path: Path) -> list[str]:

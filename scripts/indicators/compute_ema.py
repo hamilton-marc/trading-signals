@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scripts.paths import DATA_DAILY_DIR, INDICATORS_EMA_DIR, META_ERRORS_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -26,7 +27,7 @@ class SymbolError:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument("--input-dir", default=str(DATA_DAILY_DIR), help="Directory with source OHLC CSV files")
     parser.add_argument("--out-dir", default=str(INDICATORS_EMA_DIR), help="Directory for indicator CSV output")
     parser.add_argument(
@@ -40,19 +41,6 @@ def parse_args() -> argparse.Namespace:
         help="Optional comma-separated EMA periods (example: 50,200)",
     )
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-
-    symbols: list[str] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def parse_periods(value: str | None, fallback_period: int) -> list[int]:

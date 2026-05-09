@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scripts.paths import DATA_MONTHLY_DIR, INDICATORS_MOMENTUM_DIR, INDICATORS_TREND_DIR, META_ERRORS_DIR, META_LATEST_DIR, SIGNALS_ENGINE_DIR
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -26,7 +27,7 @@ class SymbolError:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument("--trend-dir", default=str(INDICATORS_TREND_DIR), help="Directory with trend CSV files")
     parser.add_argument("--momentum-dir", default=str(INDICATORS_MOMENTUM_DIR), help="Directory with momentum CSV files")
     parser.add_argument(
@@ -97,19 +98,6 @@ def parse_args() -> argparse.Namespace:
         help="Monthly bars required to confirm a trend change (default: 2)",
     )
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-
-    symbols: list[str] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:

@@ -16,6 +16,7 @@ from scripts.paths import (
     momentum_tv_latest_file,
     momentum_tv_output_dir,
 )
+from scripts.watchlists import DEFAULT_WATCHLIST_PATH, read_watchlist
 
 
 @dataclass
@@ -33,7 +34,7 @@ class SymbolError:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--watchlist", default="watchlist.txt", help="Path to watchlist file")
+    parser.add_argument("--watchlist", default=DEFAULT_WATCHLIST_PATH, help="Path to watchlist file")
     parser.add_argument(
         "--timeframe",
         default="daily",
@@ -99,19 +100,6 @@ def parse_args() -> argparse.Namespace:
         help="Minimum bars to hold a position before allowing reversal (default: 0, disabled)",
     )
     return parser.parse_args()
-
-
-def read_watchlist(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"Watchlist not found: {path}")
-
-    symbols: list[str] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        symbols.append(line.upper())
-    return symbols
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
