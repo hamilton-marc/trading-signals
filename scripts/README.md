@@ -20,6 +20,7 @@ Run modules directly, for example:
 ```bash
 python3 -m scripts.data.fetch_stooq_ohlc --interval all
 python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily
+python3 -m scripts.strategies.backtest_tv_match --symbols QQQ,TQQQ --timeframe daily --mode long_only
 python3 -m scripts.reports.recent_momentum_report
 python3 -m scripts.reports.weekly_trend_watchlist_report
 python3 -m scripts.operations.daily_run --label daily

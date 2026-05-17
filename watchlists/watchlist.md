@@ -193,4 +193,12 @@ JNJ
 PANW
 ^DJI
 ^NDQ
+
+## ETF Candidate - Core / Diversified
 XLV
+
+## ETF Candidate - Tactical / Leveraged
+TQQQ
+UPRO
+SOXL
+UCO

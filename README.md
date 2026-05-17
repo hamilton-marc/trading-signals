@@ -52,16 +52,24 @@ python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 1.2
 python3 -m scripts.indicators.momentum_strategy_tv_match --timeframe daily --length 24 --min-tick 0.01
 ```
 
-3. Build ranked recent-buy shortlist (last 5 bars)
+3. Backtest strict momentum fills on QQQ/TQQQ
+
+```bash
+python3 -m scripts.strategies.backtest_tv_match --symbols QQQ,TQQQ --timeframe daily --mode long_only
+```
+
+4. Build ranked recent-buy shortlist (last 5 bars)
 
 ```bash
 python3 -m scripts.reports.recent_momentum_report
 ```
 
-4. Open notebook for chart review of all recent symbols
+5. Open notebook for chart review of all recent symbols
 
 - `notebooks/recent_signal_lab.ipynb`
   - default chart mode: candlesticks + volume subpanel (`CHART_STYLE = "candles"`)
+- `notebooks/tqqq_qqq_tv_match_backtest_lab.ipynb`
+  - compares normalized equity and drawdown for `QQQ` vs `TQQQ`
 
 Generated shortlist artifacts:
 - `out/reports/momentum/recent_momentum_buys_5d.csv`
@@ -78,8 +86,9 @@ jupyter notebook
 Recommended notebook sequence:
 1. `notebooks/ema_lab.ipynb`
 2. `notebooks/tv_momentum_match_lab.ipynb`
-3. `notebooks/recent_signal_lab.ipynb`
-4. `notebooks/backtest_lab.ipynb`
+3. `notebooks/tqqq_qqq_tv_match_backtest_lab.ipynb`
+4. `notebooks/recent_signal_lab.ipynb`
+5. `notebooks/backtest_lab.ipynb`
 
 Notebook assumptions:
 - Most notebooks read pre-generated CSV artifacts from `out/`
@@ -234,6 +243,20 @@ Writes:
 - `out/backtests/long_only/<SYMBOL>_trades.csv`
 - `out/backtests/long_only/<SYMBOL>_equity_curve.csv`
 - `out/backtests/long_only/<SYMBOL>_summary.csv`
+
+### Strict TV-Match Backtest
+
+```bash
+python3 -m scripts.strategies.backtest_tv_match --symbols QQQ,TQQQ --timeframe daily --mode long_only
+python3 -m scripts.strategies.backtest_tv_match --symbols QQQ --timeframe weekly --mode both
+```
+
+Writes:
+- `out/backtests/tv_match/<SYMBOL>_<TIMEFRAME>_<MODE>_trades.csv`
+- `out/backtests/tv_match/<SYMBOL>_<TIMEFRAME>_<MODE>_equity.csv`
+- `out/backtests/tv_match/<SYMBOL>_tv_match_<TIMEFRAME>_summary.csv`
+- `out/backtests/tv_match/comparison_<TIMEFRAME>_<MODE>_<SYMBOLS>.csv`
+- `out/backtests/tv_match/comparison_<TIMEFRAME>_<MODE>_<SYMBOLS>.md`
 
 ## Advanced Strategy/Research Tools
 
