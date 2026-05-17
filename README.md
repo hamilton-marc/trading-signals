@@ -8,6 +8,15 @@ The current focus is:
 - scan for recent candidate signals
 - run simple strategy/backtest experiments
 
+## Repo Posture
+
+This repo is the public engine.
+
+In the split workspace, personal inputs belong in the sibling private repo,
+while this repo keeps reusable code, notebooks, docs, and sample inputs.
+
+See `docs/private-overlay.md` for the public/private workspace pattern.
+
 ## Requirements
 - Python `3.10+`
 
@@ -147,6 +156,7 @@ python3 -m scripts.data.fetch_stooq_ohlc --interval m
 python3 -m scripts.data.fetch_stooq_ohlc --interval all
 python3 -m scripts.data.fetch_stooq_ohlc --start-date 2025-01-01
 python3 -m scripts.data.fetch_stooq_ohlc --dry-run
+python3 -m scripts.data.fetch_stooq_ohlc --watchlist ../trading-signals-private/watchlists/watchlist.md
 ```
 
 Writes:
@@ -297,8 +307,10 @@ Main notebooks currently used:
 
 ## Notes
 
-- `watchlists/watchlist.md` is the primary symbol input.
-- `watchlists/holdings.md` is available for owned-position analysis when you want a narrower list.
+- `watchlists/watchlist.md` and `watchlists/holdings.md` remain the in-repo defaults for backward compatibility.
+- Public sample/default inputs live at `watchlists/watchlist.md` and `watchlists/holdings.md`.
+- Prefer sibling private inputs such as `../trading-signals-private/watchlists/watchlist.md` for live work in the split workspace.
 - `out/` is for generated artifacts and is ignored by Git.
 - Operational runbook: `docs/operations/trading-workflow.md`
+- Private overlay guide: `docs/private-overlay.md`
 - Files under `docs/milestones/` are historical snapshots and may include legacy command examples.

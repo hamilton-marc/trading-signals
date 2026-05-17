@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -110,8 +111,13 @@ def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> 
 def comparison_stem(symbols: list[str], timeframe: str, mode: str) -> str:
     if not symbols:
         suffix = "none"
-    else:
+    elif len(symbols) <= 5:
         suffix = "_".join(symbols)
+    else:
+        joined = ",".join(symbols)
+        digest = hashlib.sha1(joined.encode("utf-8")).hexdigest()[:10]
+        preview = "_".join(symbols[:3])
+        suffix = f"{len(symbols)}syms_{preview}_{digest}"
     return f"comparison_{timeframe}_{mode}_{suffix}"
 
 

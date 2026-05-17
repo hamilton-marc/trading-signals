@@ -1,25 +1,16 @@
 # Holdings
+
+This is the public default holdings example for the `trading-signals` engine.
+
+Use your live personal holdings from the sibling private repo when working in
+the split workspace:
+
+`../trading-signals-private/holdings/holdings.md`
+
 ## ETFs
-SHYG
-IGSB
-IGIB
-USHY
+SPY
 XLV
-VGK
 
-## Options
-AMZN
-APO
-AAPL
-BX
-BSX
-CSCO
-EBAY
-QQQ
+## Stocks
 MSFT
-OHI
-XLU
-SYF
-
-# Stocks
-PSO
+NVDA

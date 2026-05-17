@@ -17,6 +17,7 @@ Related policy:
 
 ## Inputs
 - Watchlist: `watchlists/watchlist.md` by default
+- Preferred live-workflow input in the split workspace: `../trading-signals-private/watchlists/watchlist.md`
 - (Planned) current holdings list: `positions/current_positions.csv`
 
 ## Daily Workflow (EOD)
@@ -24,11 +25,13 @@ Related policy:
 ### Optional: Single-command runner
 ```bash
 python3 -m scripts.operations.daily_run --label daily --fetch-interval all
+python3 -m scripts.operations.daily_run --label daily --fetch-interval all --watchlist ../trading-signals-private/watchlists/watchlist.md
 ```
 
 ### Step 1: Refresh data
 ```bash
 python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 2.0 --delay-jitter-seconds 3.0
+python3 -m scripts.data.fetch_stooq_ohlc --interval all --delay-seconds 2.0 --delay-jitter-seconds 3.0 --watchlist ../trading-signals-private/watchlists/watchlist.md
 ```
 This fetches `daily` from Stooq and derives `weekly`/`monthly` locally from daily data.
 

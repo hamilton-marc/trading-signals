@@ -8,6 +8,7 @@ python3 -m scripts.data.fetch_stooq_ohlc
 
 ## Inputs
 - Symbols: `watchlists/watchlist.md` by default. Markdown headings and other decorative lines are ignored; symbol lines are parsed from the remaining content.
+- In the split workspace, prefer an explicit sibling private path for live runs, for example `../trading-signals-private/watchlists/watchlist.md`.
 
 ## Timeframes
 - Daily fetch from Stooq: `--interval d` (default)
@@ -24,6 +25,7 @@ python3 -m scripts.data.fetch_stooq_ohlc --interval d --start-date 2024-01-01
 python3 -m scripts.data.fetch_stooq_ohlc --interval d --start-date 2026-02-20 --end-date 2026-02-27
 python3 -m scripts.data.fetch_stooq_ohlc --interval w
 python3 -m scripts.data.fetch_stooq_ohlc --dry-run
+python3 -m scripts.data.fetch_stooq_ohlc --watchlist ../trading-signals-private/watchlists/watchlist.md
 ```
 
 ## Output Paths
